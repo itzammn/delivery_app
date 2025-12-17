@@ -1,0 +1,40 @@
+name: zamboree
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 🌟 Common Flutter dependencies 
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.3.2
+  location: ^6.0.2
+  lottie: ^3.1.2
+  fl_chart: ^0.66.2
+
+  # 🗺️ Map-related dependencies (for DummyMapPage)
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
+
+  # 📸 Image picker for selecting photos
+  image_picker: ^1.1.1
+
+  # 🌐 HTTP package for API calls (added for register API)
+  http:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
