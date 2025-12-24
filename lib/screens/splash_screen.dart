@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen> {
         children: [
           // 🌕 Top Yellow Curved Background
           CustomPaint(
-            size: Size(MediaQuery.of(context).size.width, 220),
+            size: Size(MediaQuery.of(context).size.width, 170),
             painter: _SplashCurvePainter(),
           ),
 
@@ -83,7 +83,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 40.0),
                   child: Text(
                     "Empowering delivery partners with speed and trust — "
-                        "because every package deserves to arrive with a smile.",
+                    "because every package deserves to arrive with a smile.",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -118,10 +118,18 @@ class _SplashCurvePainter extends CustomPainter {
     final path = Path();
 
     path.lineTo(0, size.height * 0.75);
-    path.quadraticBezierTo(size.width * 0.25, size.height * 0.9,
-        size.width * 0.5, size.height * 0.75);
-    path.quadraticBezierTo(size.width * 0.75, size.height * 0.6,
-        size.width, size.height * 0.75);
+    path.quadraticBezierTo(
+      size.width * 0.25,
+      size.height * 0.9,
+      size.width * 0.5,
+      size.height * 0.75,
+    );
+    path.quadraticBezierTo(
+      size.width * 0.75,
+      size.height * 0.6,
+      size.width,
+      size.height * 0.75,
+    );
     path.lineTo(size.width, 0);
     path.close();
 

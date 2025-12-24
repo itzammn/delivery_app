@@ -1,12 +1,9 @@
-
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zamboree/auth/api_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class KycPage extends StatefulWidget {
   const KycPage({super.key});
@@ -20,7 +17,81 @@ class _KycPageState extends State<KycPage> {
   final ScrollController _scrollController = ScrollController();
   int _currentStep = 0;
 
-  // Controllers
+  List<dynamic> cityList = [];
+  String? selectedCityId;
+  String? selectedCityName;
+
+  List<dynamic> genderList = [];
+  String? selectedGenderId;
+  String? selectedGenderName;
+
+  List<dynamic> vehicleTypeList = [];
+  String? selectedVehicleTypeId;
+  String? selectedVehicleTypeName;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchCities();
+    fetchGenders();
+    fetchVehicleTypes(); // ✅ Load cities when page starts
+  }
+
+  Future<void> fetchCities() async {
+    try {
+      final result = await ApiHelper.get("/delivery/auth/cities");
+      print("📥 Cities API Response: $result");
+
+      if (result["success"] == true && result["data"] != null) {
+        setState(() {
+          cityList = result["data"];
+        });
+      } else {
+        _showSnack("Failed to load cities", Colors.redAccent);
+      }
+    } catch (e) {
+      print("❌ Error fetching cities: $e");
+      _showSnack("Error loading cities: $e", Colors.redAccent);
+    }
+  }
+
+  Future<void> fetchGenders() async {
+    try {
+      final result = await ApiHelper.get("/delivery/auth/gender");
+      print("📥 Gender API Response: $result");
+
+      if (result["success"] == true && result["data"] != null) {
+        setState(() {
+          genderList = result["data"];
+        });
+      } else {
+        _showSnack("Failed to load genders", Colors.redAccent);
+      }
+    } catch (e) {
+      print("❌ Error fetching genders: $e");
+      _showSnack("Error loading genders: $e", Colors.redAccent);
+    }
+  }
+
+  Future<void> fetchVehicleTypes() async {
+    try {
+      final result = await ApiHelper.get("/delivery/auth/vehicleType");
+      print("📥 Vehicle Type API Response: $result");
+
+      if (result["success"] == true && result["data"] != null) {
+        setState(() {
+          vehicleTypeList = result["data"];
+        });
+      } else {
+        _showSnack("Failed to load vehicle types", Colors.redAccent);
+      }
+    } catch (e) {
+      print("❌ Error fetching vehicle types: $e");
+      _showSnack("Error loading vehicle types: $e", Colors.redAccent);
+    }
+  }
+
+  // ---------- Controllers ----------
   final nameController = TextEditingController();
   final dobController = TextEditingController();
   final phoneController = TextEditingController();
@@ -37,12 +108,14 @@ class _KycPageState extends State<KycPage> {
 
   // Address Info
   final addressController = TextEditingController();
-  final cityController = TextEditingController();
+  // final cityController = TextEditingController();
 
   // Vehicle Info
   String vehicleType = "Car";
   final vehicleModelController = TextEditingController();
   final vehicleNumberController = TextEditingController();
+  final dlNumberController = TextEditingController();
+  final dlExpiryController = TextEditingController();
 
   // Documents
   XFile? profilePhoto;
@@ -50,13 +123,21 @@ class _KycPageState extends State<KycPage> {
   XFile? aadharPhoto;
   XFile? insurancePhoto;
 
-  final _formKeys = List.generate(7, (index) => GlobalKey<FormState>());
+  // Nominee Information
+  final nomineeNameController = TextEditingController();
+  final nomineeRelationshipController = TextEditingController();
+  final nomineeDobController = TextEditingController();
+  final nomineePhoneController = TextEditingController();
+  final nomineeEmergencyPhoneController = TextEditingController();
+
+  final _formKeys = List.generate(8, (index) => GlobalKey<FormState>());
 
   // OTP
-  String generatedOTP = "";
   final otpController = TextEditingController();
   bool otpSent = false;
   bool otpVerified = false;
+  bool _isSendingOtp = false;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -71,7 +152,20 @@ class _KycPageState extends State<KycPage> {
     if (img != null) setState(() => setFile(img));
   }
 
-  // Validation
+  Future<void> _captureSelfie(Function(XFile) setFile) async {
+    final picker = ImagePicker();
+    final img = await picker.pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.front, // selfie camera
+      imageQuality: 70,
+    );
+
+    if (img != null) {
+      setState(() => setFile(img));
+    }
+  }
+
+  // ---------- Validation ----------
   String? validateName(String? v) {
     if (v == null || v.isEmpty) return "Enter Name";
     if (!RegExp(r"^[a-zA-Z ]+$").hasMatch(v)) return "Enter valid Name";
@@ -95,236 +189,366 @@ class _KycPageState extends State<KycPage> {
   String? validateDOB(String? v) {
     if (v == null || v.isEmpty) return "Enter Date of Birth";
     try {
-      DateTime dob = DateTime.parse(v);
+      final parts = v.split('-');
+      if (parts.length != 3) return "Enter valid DOB (DD-MM-YYYY)";
+
+      final day = int.parse(parts[0]);
+      final month = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
+
+      final dob = DateTime(year, month, day);
+
       if (dob.isAfter(DateTime.now())) return "Invalid Date of Birth";
     } catch (e) {
-      return "Enter valid DOB (YYYY-MM-DD)";
+      return "Enter valid DOB (DD-MM-YYYY)";
     }
     return null;
   }
 
-  // OTP
-  // 🔹 Send OTP (Dynamic)
+  String convertToApiDate(String date) {
+    try {
+      final parts = date.split("-");
+      return "${parts[2]}-${parts[1]}-${parts[0]}";
+    } catch (e) {
+      return date;
+    }
+  }
+
+  // ---------- OTP ----------
+  // ---------- OTP ----------
   Future<void> sendOTP() async {
     final phone = phoneController.text.trim();
 
     if (phone.isEmpty || !RegExp(r'^[6-9]\d{9}$').hasMatch(phone)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter valid phone number")),
-      );
+      _showSnack("Please enter a valid phone number", Colors.redAccent);
       return;
     }
 
+    setState(() => _isSendingOtp = true);
     try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("⏳ Sending OTP..."),
-          backgroundColor: Colors.blueAccent,
-        ),
-      );
+      // ✅ Remove all previous SnackBars before showing new one
+      ScaffoldMessenger.of(context).clearSnackBars();
 
-      // ✅ Use custom API helper instead of http.post
-      final result = await ApiHelper.post(
-        "/delivery/auth/send-register-otp",
-        {"phone": phone},
-      );
+      print("📤 Sending OTP API call...");
 
-      if (result["status"] == true || result["success"] == true) {
-        setState(() => otpSent = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result["message"] ?? "OTP sent successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
+      final result = await ApiHelper.post("/delivery/auth/send-otp", {
+        "phone": phone,
+      });
+
+      print("📥 OTP API Response: $result");
+
+      final success =
+          result["status"] == true ||
+          result["success"] == true ||
+          result["status"] == "success";
+
+      // ✅ Clear any existing snack before showing our custom one
+      ScaffoldMessenger.of(context).clearSnackBars();
+
+      if (success) {
+        setState(() {
+          otpSent = true;
+          otpVerified = false;
+        });
+
+        // 🔥 Only show this clean single message
+        _showSnack("OTP sent to your phone number", Colors.green);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result["message"] ?? "Failed to send OTP"),
-            backgroundColor: Colors.redAccent,
-          ),
+        _showSnack(
+          result["message"] ?? "Failed to send OTP. Please try again.",
+          Colors.redAccent,
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+      print("❌ Exception in sendOTP: $e");
+      ScaffoldMessenger.of(context).clearSnackBars();
+      _showSnack("Error sending OTP: $e", Colors.redAccent);
+    } finally {
+      setState(() => _isSendingOtp = false);
     }
   }
 
-  // 🔹 Verify OTP (Dynamic)
   Future<void> verifyOTP() async {
     final phone = phoneController.text.trim();
     final otp = otpController.text.trim();
 
     if (otp.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter OTP to verify")),
+      _showSnack("Please enter OTP", Colors.redAccent);
+      return;
+    }
+
+    setState(() => _isSendingOtp = true);
+    try {
+      // ❌ No loading snackbar
+      print("📤 Verifying OTP API call...");
+
+      final result = await ApiHelper.post("/delivery/auth/verify-otp", {
+        "phone": phone,
+        "otp": otp,
+      });
+
+      print("📥 Verify OTP API Response: $result");
+
+      final success =
+          result["status"] == true ||
+          result["success"] == true ||
+          result["status"] == "success";
+
+      // ✅ Clear any previous snackbars (optional safety)
+      ScaffoldMessenger.of(context).clearSnackBars();
+
+      if (success) {
+        setState(() {
+          otpVerified = true;
+        });
+
+        // ✅ Do not show any “verifying” or “success” snackbar here
+        // UI already shows green “Phone verified successfully!” message
+        print("✅ OTP verified successfully!");
+      } else {
+        _showSnack(
+          result["message"] ?? "Invalid OTP. Please try again.",
+          Colors.redAccent,
+        );
+      }
+    } catch (e) {
+      print("❌ Exception in verifyOTP: $e");
+      _showSnack("Error verifying OTP: $e", Colors.redAccent);
+    } finally {
+      setState(() => _isSendingOtp = false);
+    }
+  }
+
+  // ---------- Helper ----------
+  void _showSnack(String msg, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+  }
+
+  // ---------- Navigation ----------
+  void nextPage() async {
+    if (!(_formKeys[_currentStep].currentState?.validate() ?? false)) return;
+
+    if (_currentStep == 0 && !otpVerified) {
+      _showSnack(
+        "Please verify phone number before proceeding",
+        Colors.redAccent,
       );
       return;
     }
 
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("⏳ Verifying OTP..."),
-          backgroundColor: Colors.blueAccent,
-        ),
-      );
-
-      // ✅ Use your custom ApiHelper instead of http.post
-      final result = await ApiHelper.post(
-        "/delivery/auth/verify-register-otp",
-        {"phone": phone, "otp": otp},
-      );
-
-      if (result["status"] == true || result["success"] == true) {
-        setState(() => otpVerified = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result["message"] ?? "OTP Verified Successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result["message"] ?? "Invalid OTP"),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
+    if (_currentStep == 1 &&
+        passwordController.text != confirmPasswordController.text) {
+      _showSnack("Passwords do not match", Colors.redAccent);
+      return;
     }
-  }
 
-
-  // Step Navigation
-  void nextPage() async {
-    if (_formKeys[_currentStep].currentState?.validate() ?? false) {
-      if (_currentStep == 0) {
-        if (!otpVerified) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Please verify your phone number before proceeding",
-              ),
-            ),
-          );
-          return;
-        }
-      }
-
-      if (_currentStep == 1 &&
-          passwordController.text != confirmPasswordController.text) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
-        return;
-      }
-
-      if (_currentStep < 6) {
-        setState(() => _currentStep++);
-        _pageController.nextPage(
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        final prefs = await SharedPreferences.getInstance();
-        List<String> registeredNumbers =
-            prefs.getStringList('registered_numbers') ?? [];
-        if (!registeredNumbers.contains(phoneController.text.trim())) {
-          registeredNumbers.add(phoneController.text.trim());
-          await prefs.setStringList('registered_numbers', registeredNumbers);
-        }
-        _submitRegistration();
-      }
+    setState(() => _isSubmitting = true);
+    try {
+      await _submitRegistration();
+    } finally {
+      setState(() => _isSubmitting = false);
     }
   }
 
   void prevPage() {
     if (_currentStep > 0) {
       setState(() => _currentStep--);
+
       _pageController.previousPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+
+      // 👇 YAHI ADD KARO
+      if (_scrollController.hasClients) {
+        _scrollController.jumpTo(0);
+      }
     } else {
       Navigator.pop(context);
     }
   }
 
-  void _submitRegistration() async {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("⏳ Registering user, please wait..."),
-          backgroundColor: Colors.blueAccent,
-        ),
-      );
+  Future<bool> _submitRegistration({bool navigate = true}) async {
+    Map<String, dynamic> data = {};
+    final mobile = phoneController.text.trim();
 
-      // Body data (match API fields)
-      final Map<String, String> data = {
-        "name": nameController.text.trim(),
-        "email": emailController.text.trim(),
-        "phone": phoneController.text.trim(),
-        "dob": dobController.text.trim(),
-        "gender": gender,
-        "password": passwordController.text.trim(),
-        "vehicle_type": vehicleType,
-        "vehicle_model": vehicleModelController.text.trim(),
-        "vehicle_number": vehicleNumberController.text.trim(),
-        "address": addressController.text.trim(),
-        "city": cityController.text.trim(),
-        "ifsc": ifscController.text.trim(),
-        "bank_name": bankNameController.text.trim(),
-        "account_number": accountNumberController.text.trim(),
-        "account_holder_name": accountHolderController.text.trim(),
-      };
+    switch (_currentStep) {
+      case 0:
+        data = {
+          "step": 1,
+          "name": nameController.text.trim(),
+          "dob": dobController.text.trim(),
+          "mobile": mobile,
+          "gender": selectedGenderId,
+        };
+        break;
 
-      // Send POST request
-      final result = await ApiHelper.post("/delivery/auth/register", data);
+      case 1:
+        data = {
+          "step": 2,
+          "mobile": mobile,
+          "email": emailController.text.trim(),
+          "password": passwordController.text.trim(),
+          "confirmPassword": confirmPasswordController.text.trim(),
+        };
+        break;
 
-
-      if (result["status"] == true || result["success"] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("✅ Registration Successful!"),
-            backgroundColor: Colors.green,
+      case 2:
+        if (profilePhoto == null) {
+          _showSnack("Upload profile photo", Colors.redAccent);
+          return false;
+        }
+        data = {
+          "step": 3,
+          "mobile": mobile,
+          "profilePhoto": base64Encode(
+            await File(profilePhoto!.path).readAsBytes(),
           ),
-        );
-        await Future.delayed(const Duration(seconds: 1));
-        if (mounted) Navigator.pushReplacementNamed(context, '/login');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result["message"] ?? "Registration failed"),
-            backgroundColor: Colors.redAccent,
+        };
+        break;
+
+      case 3:
+        data = {
+          "step": 4,
+          "mobile": mobile,
+          "ifsc": ifscController.text.trim(),
+          "bankName": bankNameController.text.trim(),
+          "accountNo": accountNumberController.text.trim(),
+          "accountHolder": accountHolderController.text.trim(),
+        };
+        break;
+
+      case 4:
+        data = {
+          "step": 5,
+          "mobile": mobile,
+          "address": addressController.text.trim(),
+          "city": selectedCityId,
+        };
+        break;
+
+      case 5:
+        data = {
+          "step": 6,
+          "mobile": mobile,
+          "vehicleType": selectedVehicleTypeId,
+          "vehicleModel": vehicleModelController.text.trim(),
+          "vehicleNo": vehicleNumberController.text.trim(),
+          "dLNumber": dlNumberController.text.trim(),
+          "dLExpiryDate": convertToApiDate(dlExpiryController.text.trim()),
+        };
+        break;
+
+      case 6:
+        data = {
+          "step": 7,
+          "mobile": mobile,
+          "nomineeName": nomineeNameController.text.trim(),
+          "relationship": nomineeRelationshipController.text.trim(),
+          "nomineeDOB": nomineeDobController.text.trim(),
+          "nomineeMobile": nomineePhoneController.text.trim(),
+          "emergencyMobile": nomineeEmergencyPhoneController.text.trim(),
+        };
+        break;
+
+      case 7:
+        if (licencePhoto == null ||
+            aadharPhoto == null ||
+            insurancePhoto == null) {
+          _showSnack("Please upload all required documents", Colors.redAccent);
+          return false;
+        }
+        data = {
+          "step": 8,
+          "mobile": mobile,
+          "drivingLicense": base64Encode(
+            await File(licencePhoto!.path).readAsBytes(),
           ),
+          "aadharCard": base64Encode(
+            await File(aadharPhoto!.path).readAsBytes(),
+          ),
+          "insuranceDoc": base64Encode(
+            await File(insurancePhoto!.path).readAsBytes(),
+          ),
+        };
+        break;
+    }
+
+    // _showSnack("⏳ Submitting Step ${_currentStep + 1}...", Colors.blueAccent);
+    final result = await ApiHelper.post("/delivery/auth/register", data);
+
+    print("📤 Sent Data: $data");
+    print("📥 Response: $result");
+
+    final success =
+        result["status"] == true ||
+        result["success"] == true ||
+        result["status"] == "success";
+
+    if (success) {
+      if (!navigate) {
+        _showSnack(
+          result["message"] ?? "Proceeding to OTP...",
+          Colors.blueAccent,
         );
       }
+      // ✅ If last step, handle token
+      if (_currentStep == 7 && result["token"] != null) {
+        print("✅ Token received: ${result["token"]}");
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString("token", result["token"]);
+      }
 
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (navigate) {
+        if (_currentStep < 7) {
+          setState(() => _currentStep++);
+          _pageController.nextPage(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+          await Future.delayed(const Duration(milliseconds: 50));
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        } else {
+          _showSnack("Registration completed!", Colors.green);
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+      }
+      return true;
+    } else {
+      // Step 1 already registered handling
+      if (_currentStep == 0 &&
+          result["message"] != null &&
+          result["message"].toString().toLowerCase().contains("already")) {
+        if (!navigate) {
+          _showSnack(result["message"], Colors.blueAccent);
+        }
+        if (navigate && _currentStep < 7) {
+          setState(() => _currentStep++);
+          _pageController.nextPage(
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+        return true;
+      }
+
+      _showSnack(
+        result["message"] ?? "Step submission failed",
+        Colors.redAccent,
+      );
+      return false;
     }
   }
 
-  // Step Title
+  // ---------- Step Titles ----------
   String getStepTitle() {
     switch (_currentStep) {
       case 0:
@@ -340,6 +564,8 @@ class _KycPageState extends State<KycPage> {
       case 5:
         return "Vehicle Information";
       case 6:
+        return "Nominee Information";
+      case 7:
         return "Documents Upload";
       default:
         return "";
@@ -348,18 +574,16 @@ class _KycPageState extends State<KycPage> {
 
   @override
   Widget build(BuildContext context) {
-    final totalSteps = 7;
-    final bool isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    final totalSteps = 8;
 
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: true,
-      body: isKeyboardOpen
-          ? SingleChildScrollView(
-              controller: _scrollController,
-              child: _buildMainContent(context, totalSteps),
-            )
-          : _buildMainContent(context, totalSteps),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        physics: const ClampingScrollPhysics(),
+        child: _buildMainContent(context, totalSteps),
+      ),
     );
   }
 
@@ -370,112 +594,145 @@ class _KycPageState extends State<KycPage> {
           size: Size(MediaQuery.of(context).size.width, 220),
           painter: _CurvedPainter(),
         ),
+
+        /// ⭐ SAFE AREA UI
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: const ClampingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 120),
-                  const Center(
-                    child: Text(
-                      "Register",
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 120),
+                const Center(
+                  child: Text(
+                    "Register",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  const Center(
-                    child: Text(
-                      "Please fill in the following details to continue",
-                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                ),
+                const SizedBox(height: 5),
+                const Center(
+                  child: Text(
+                    "Please fill in the following details to continue",
+                    style: TextStyle(color: Colors.black54, fontSize: 14),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                Center(
+                  child: Text(
+                    getStepTitle(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 15),
-                  Center(
-                    child: Text(
-                      getStepTitle(),
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
+                ),
+                const SizedBox(height: 15),
 
-                  // Step indicator
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(totalSteps, (index) {
-                      return Container(
-                        width: 22,
-                        height: 6,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          color: index <= _currentStep
-                              ? Colors.black
-                              : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 20),
+                // ---- Step Indicator ----
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(totalSteps, (index) {
+                    return Container(
+                      width: 22,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        color: index <= _currentStep
+                            ? Colors.black
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 6),
 
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.55,
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _step1Personal(),
-                          _step3Password(),
-                          _step4Photo(),
-                          _step5Bank(),
-                          _step6Address(),
-                          _step7Vehicle(),
-                          _step8Documents(),
-                        ],
-                      ),
-                    ),
+                // ---- Step Pages ----
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  child: SizedBox(
+                    height: () {
+                      final h = MediaQuery.of(context).size.height;
 
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: nextPage,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: Text(
-                        _currentStep == 6 ? "Submit" : "Proceed",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
+                      // STEP 1 — Personal + OTP case handle
+                      if (_currentStep == 0) {
+                        // OTP tabhi height badhao jab OTP field visible ho
+                        bool showOtpField = otpSent && !otpVerified;
+                        return showOtpField ? h * 0.60 : h * 0.46;
+                      }
+ 
+                      if (_currentStep == 1) return h * 0.48; // Password
+                      if (_currentStep == 2) return h * 0.42; // Photo
+                      if (_currentStep == 3) return h * 0.55; // Bank
+                      if (_currentStep == 4) return h * 0.48; // 
+                      if (_currentStep == 5) return h * 0.62; // Vehicle
+                      if (_currentStep == 6)
+                        return h * 0.70; // Nominee (zyada fields)
+
+                      // STEP 8 — Documents (big images so more height)
+                      return h * 0.75;
+                    }(),
+
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _step1Personal(),
+                        _step2Password(),
+                        _step3Photo(),
+                        _step4Bank(),
+                        _step5Address(),
+                        _step6Vehicle(),
+                        _step7Nominee(),
+                        _step8Documents(),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                ),
+
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : nextPage,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            _currentStep == 7 ? "Submit" : "Proceed",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                if (_currentStep == 0)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -494,31 +751,40 @@ class _KycPageState extends State<KycPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  if (_currentStep > 0)
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: prevPage,
-                        icon: const Icon(Icons.arrow_back, color: Colors.black),
-                        label: const Text(
-                          "Back",
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+
+                const SizedBox(height: 6),
+              ],
             ),
           ),
         ),
+
+        /// 🔥 WORKING BACK BUTTON ON TOP
+        if (_currentStep > 0)
+          Positioned(
+            top: 50,
+            left: 18,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: prevPage,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  size: 20,
+                  color: Color.fromARGB(255, 7, 7, 7),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
 
-  // ===== Step 1 with OTP inside =====
+  // ---------- Steps ----------
   Widget _step1Personal() => Form(
     key: _formKeys[0],
     child: Column(
@@ -536,101 +802,158 @@ class _KycPageState extends State<KycPage> {
           Icons.calendar_today,
           validator: validateDOB,
         ),
+
+        // ✅ Gender dropdown (moved above Phone Number)
+        DropdownButtonFormField<String>(
+          value: selectedGenderId,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.person, color: Colors.black54),
+            hintText: "Select Gender",
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.black26),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 18,
+              horizontal: 15,
+            ),
+          ),
+          items: genderList.map<DropdownMenuItem<String>>((gender) {
+            return DropdownMenuItem<String>(
+              value: gender["_id"],
+              child: Row(
+                children: [
+                  Image.network(
+                    gender["image"],
+                    width: 28,
+                    height: 28,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.person),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(gender["name"]),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              selectedGenderId = value;
+              selectedGenderName = genderList.firstWhere(
+                (g) => g["_id"] == value,
+              )["name"];
+            });
+          },
+          validator: (value) => value == null ? "Please select gender" : null,
+        ),
+
+        const SizedBox(height: 14),
+
+        // ✅ Phone number with integrated OTP button
         _inputField(
           "Phone Number",
           phoneController,
           Icons.phone,
           keyboard: TextInputType.phone,
           validator: validatePhone,
-        ),
-        const SizedBox(height: 10),
+          maxLength: 10,
+          suffixIcon: otpVerified
+              ? const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: Icon(Icons.verified, color: Colors.green),
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _isSendingOtp
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF19676E),
+                            ),
+                          ),
+                        )
+                      : TextButton(
+                          onPressed: _isSendingOtp
+                              ? null
+                              : () async {
+                                  if (!(_formKeys[0].currentState?.validate() ??
+                                      false)) {
+                                    return; // ❌ agar form valid nahi to OTP call nahi
+                                  }
 
-        if (!otpSent)
-          ElevatedButton(
-            onPressed: () {
-              if (validatePhone(phoneController.text) == null) {
-                sendOTP();
-                setState(() => otpSent = true);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Enter valid number")),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              minimumSize: const Size(double.infinity, 45),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              "Send OTP",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
+                                  setState(() => _isSendingOtp = true);
+
+                                  //  Step-1 registration submit (without navigation)
+                                  final registered = await _submitRegistration(
+                                    navigate: false,
+                                  );
+
+                                  if (registered) {
+                                    await sendOTP(); // Ab backend user ko pehchanega → OTP हमेशा first click me jayega
+                                  }
+
+                                  setState(() => _isSendingOtp = false);
+                                },
+
+                          child: Text(
+                            otpSent ? "Resend" : "Send OTP",
+                            style: const TextStyle(
+                              color: Color(0xFF19676E),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                ),
+        ),
+
+        const SizedBox(height: 10),
 
         if (otpSent && !otpVerified) ...[
           const SizedBox(height: 15),
-          TextFormField(
-            controller: otpController,
-            keyboardType: TextInputType.number,
-            maxLength: 4,
+          _inputField(
+            "Enter 6-digit OTP",
+            otpController,
+            Icons.lock_clock_outlined,
+            keyboard: TextInputType.number,
+            maxLength: 6,
             textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: "Enter 4-digit OTP",
-              counterText: "",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: verifyOTP, // ✅ backend API call karega
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green.shade700,
-              minimumSize: const Size(double.infinity, 45),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text(
-              "Verify OTP",
-              style: TextStyle(color: Colors.white),
+            suffixIcon: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _isSendingOtp
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.green,
+                        ),
+                      ),
+                    )
+                  : TextButton(
+                      onPressed: verifyOTP,
+                      child: const Text(
+                        "Verify",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
             ),
           ),
         ],
-
-        if (otpVerified)
-          const Padding(
-            padding: EdgeInsets.only(top: 8.0),
-            child: Row(
-              children: [
-                Icon(Icons.verified, color: Colors.green, size: 20),
-                SizedBox(width: 6),
-                Text(
-                  "Phone verified successfully!",
-                  style: TextStyle(color: Colors.green),
-                ),
-              ],
-            ),
-          ),
-
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            _genderOption("Male"),
-            const SizedBox(width: 12),
-            _genderOption("Female"),
-          ],
-        ),
       ],
     ),
   );
 
-  // === Other Steps remain same ===
-  Widget _step3Password() => Form(
+  Widget _step2Password() => Form(
     key: _formKeys[1],
     child: Column(
       children: [
@@ -657,30 +980,31 @@ class _KycPageState extends State<KycPage> {
     ),
   );
 
-  Widget _step4Photo() => Form(
+  Widget _step3Photo() => Form(
     key: _formKeys[2],
     child: Column(
       children: [
         const SizedBox(height: 10),
         GestureDetector(
-          onTap: () => _pickFile((f) => profilePhoto = f),
-          child: _uploadBox("Tap to upload your profile photo", profilePhoto),
+          onTap: () => _captureSelfie((f) => profilePhoto = f),
+          child: _uploadBox("Click your live selfie", profilePhoto),
         ),
       ],
     ),
   );
 
-  Widget _step5Bank() => Form(
+  Widget _step4Bank() => Form(
     key: _formKeys[3],
     child: Column(
       children: [
-        _inputField("IFSC Code", ifscController, Icons.account_balance),
+        // _inputField("IFSC Code", ifscController, Icons.account_balance),
         _inputField("Bank Name", bankNameController, Icons.account_balance),
         _inputField(
           "Account Number",
           accountNumberController,
           Icons.confirmation_number,
         ),
+        _inputField("IFSC Code", ifscController, Icons.account_balance),
         _inputField(
           "Account Holder Name",
           accountHolderController,
@@ -690,43 +1014,128 @@ class _KycPageState extends State<KycPage> {
     ),
   );
 
-  Widget _step6Address() => Form(
+  Widget _step5Address() => Form(
     key: _formKeys[4],
     child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _inputField("Address", addressController, Icons.home),
-        _inputField("City", cityController, Icons.location_city),
+
+        const SizedBox(height: 14),
+
+        // ✅ City dropdown from API
+        DropdownButtonFormField<String>(
+          value: selectedCityId,
+          decoration: _dropdownDecoration("Select City"),
+          items: cityList.map<DropdownMenuItem<String>>((city) {
+            return DropdownMenuItem<String>(
+              value: city["_id"],
+              child: Text(city["name"]),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              selectedCityId = value;
+              selectedCityName = cityList.firstWhere(
+                (city) => city["_id"] == value,
+              )["name"];
+            });
+          },
+          validator: (value) => value == null ? "Please select a city" : null,
+        ),
       ],
     ),
   );
 
-  Widget _step7Vehicle() => Form(
+  Widget _step6Vehicle() => Form(
     key: _formKeys[5],
     child: Column(
       children: [
         DropdownButtonFormField<String>(
-          value: vehicleType,
+          value: selectedVehicleTypeId,
           decoration: _dropdownDecoration("Vehicle Type"),
-          items: const [
-            DropdownMenuItem(value: "Car", child: Text("Car")),
-            DropdownMenuItem(value: "Bike", child: Text("Bike")),
-            DropdownMenuItem(value: "Scooty", child: Text("Scooty")),
-          ],
-          onChanged: (v) => setState(() => vehicleType = v!),
+          items: vehicleTypeList.map<DropdownMenuItem<String>>((vType) {
+            return DropdownMenuItem<String>(
+              value: vType["_id"],
+              child: Text(vType["name"]),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              selectedVehicleTypeId = value;
+              selectedVehicleTypeName = vehicleTypeList.firstWhere(
+                (v) => v["_id"] == value,
+              )["name"];
+            });
+          },
+          validator: (value) =>
+              value == null ? "Please select vehicle type" : null,
         ),
+
         const SizedBox(height: 14),
+
         _inputField(
           "Vehicle Model",
           vehicleModelController,
           Icons.directions_car,
         ),
+
         _inputField("Vehicle Number", vehicleNumberController, Icons.numbers),
+
+        _inputField(
+          "Driving Licence Number",
+          dlNumberController,
+          Icons.badge_outlined,
+        ),
+
+        _inputField("DL Expiry Date", dlExpiryController, Icons.calendar_month),
+      ],
+    ),
+  );
+
+  Widget _step7Nominee() => Form(
+    key: _formKeys[6],
+    child: Column(
+      children: [
+        _inputField(
+          "Nominee Name",
+          nomineeNameController,
+          Icons.person_outline,
+          validator: validateName,
+        ),
+        _inputField(
+          "Relationship",
+          nomineeRelationshipController,
+          Icons.family_restroom,
+        ),
+        _inputField(
+          "Nominee DOB",
+          nomineeDobController,
+          Icons.calendar_today,
+          validator: validateDOB,
+        ),
+        _inputField(
+          "Nominee Mobile Number",
+          nomineePhoneController,
+          Icons.phone,
+          keyboard: TextInputType.phone,
+          validator: validatePhone,
+          maxLength: 10,
+        ),
+        _inputField(
+          "Emergency Mobile Number",
+          nomineeEmergencyPhoneController,
+          Icons.phone_android,
+          keyboard: TextInputType.phone,
+          validator: validatePhone,
+          maxLength: 10,
+        ),
       ],
     ),
   );
 
   Widget _step8Documents() => Form(
-    key: _formKeys[6],
+    key: _formKeys[7],
     child: Column(
       children: [
         GestureDetector(
@@ -750,7 +1159,7 @@ class _KycPageState extends State<KycPage> {
     ),
   );
 
-  // Common Widgets
+  // ---------- Common Widgets ----------
   Widget _inputField(
     String hint,
     TextEditingController controller,
@@ -758,26 +1167,50 @@ class _KycPageState extends State<KycPage> {
     bool isPassword = false,
     TextInputType? keyboard,
     String? Function(String?)? validator,
+    Widget? suffixIcon,
+    int? maxLength,
+    TextAlign textAlign = TextAlign.start,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(0, 6, 0, 14),
       child: TextFormField(
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboard,
-        readOnly: hint == "Date of Birth",
-        onTap: hint == "Date of Birth"
+        maxLength: maxLength,
+        textAlign: textAlign,
+        readOnly:
+            hint == "Date of Birth" ||
+            hint == "DL Expiry Date" ||
+            hint == "Nominee DOB",
+        onTap:
+            (hint == "Date of Birth" ||
+                hint == "DL Expiry Date" ||
+                hint == "Nominee DOB")
             ? () async {
                 FocusScope.of(context).unfocus();
+                DateTime initial =
+                    (hint == "Date of Birth" || hint == "Nominee DOB")
+                    ? DateTime(2000, 1, 1)
+                    : DateTime.now();
+                DateTime first =
+                    (hint == "Date of Birth" || hint == "Nominee DOB")
+                    ? DateTime(1900)
+                    : DateTime.now();
+                DateTime last =
+                    (hint == "Date of Birth" || hint == "Nominee DOB")
+                    ? DateTime.now()
+                    : DateTime(2100);
+
                 DateTime? pickedDate = await showDatePicker(
                   context: context,
-                  initialDate: DateTime(2000, 1, 1),
-                  firstDate: DateTime(1900),
-                  lastDate: DateTime.now(),
+                  initialDate: initial,
+                  firstDate: first,
+                  lastDate: last,
                 );
                 if (pickedDate != null) {
                   controller.text =
-                      "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+                      "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
                 }
               }
             : null,
@@ -785,8 +1218,20 @@ class _KycPageState extends State<KycPage> {
             validator ?? (v) => v == null || v.isEmpty ? "Enter $hint" : null,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.black54),
-          hintText: hint,
-          hintStyle: const TextStyle(color: Colors.black45),
+
+          labelText: hint,
+
+          // Normal label color
+          labelStyle: const TextStyle(color: Colors.black54),
+
+          // Floating label color (jab upar chala jata hai)
+          floatingLabelStyle: const TextStyle(
+            color: Colors.red, // 👈 apni pasand ka color
+            fontWeight: FontWeight.w600,
+          ),
+
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+
           filled: true,
           fillColor: Colors.white,
           contentPadding: const EdgeInsets.symmetric(
@@ -797,27 +1242,57 @@ class _KycPageState extends State<KycPage> {
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: Colors.black26),
           ),
+          suffixIcon: suffixIcon,
+          counterText: "",
         ),
       ),
     );
   }
 
-  Widget _uploadBox(String text, XFile? file) => Container(
-    height: 160,
-    width: double.infinity,
-    decoration: BoxDecoration(
-      color: Colors.grey.shade100,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: file == null
-        ? Center(
-            child: Text(text, style: const TextStyle(color: Colors.black54)),
-          )
-        : ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(File(file.path), fit: BoxFit.cover),
+  Widget _uploadBox(String label, XFile? file) => Stack(
+    children: [
+      Container(
+        height: 160,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade400),
+        ),
+        child: file == null
+            ? Center(
+                child: Text(
+                  "Tap to upload $label",
+                  style: const TextStyle(color: Colors.black54),
+                ),
+              )
+            : ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(File(file.path), fit: BoxFit.cover),
+              ),
+      ),
+
+      /// 🔥 Floating Label
+      Positioned(
+        left: 12,
+        top: 10,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.75),
+            borderRadius: BorderRadius.circular(6),
           ),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    ],
   );
 
   InputDecoration _dropdownDecoration(String hint) => InputDecoration(
@@ -832,17 +1307,17 @@ class _KycPageState extends State<KycPage> {
     contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 15),
   );
 
-  Widget _genderOption(String label) => Row(
-    children: [
-      Radio<String>(
-        value: label,
-        groupValue: gender,
-        onChanged: (v) => setState(() => gender = v!),
-        activeColor: Colors.black,
-      ),
-      Text(label, style: const TextStyle(fontSize: 15)),
-    ],
-  );
+  // Widget _genderOption(String label) => Row(
+  //   children: [
+  //     Radio<String>(
+  //       value: label,
+  //       groupValue: gender,
+  //       onChanged: (v) => setState(() => gender = v!),
+  //       activeColor: Colors.black,
+  //     ),
+  //     Text(label, style: const TextStyle(fontSize: 15)),
+  //   ],
+  // );
 }
 
 class _CurvedPainter extends CustomPainter {
@@ -850,7 +1325,7 @@ class _CurvedPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..shader = const LinearGradient(
-        colors: [Color(0xFF19676E), Color(0xFF4A2FBD), Color(0xFFA7404C)],
+        colors: [Color(0xFF19676E), Color(0xFF4A2FBD), Color(0xFF40A798)],
         begin: Alignment.centerLeft,
         end: Alignment.centerRight,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));

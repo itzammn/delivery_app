@@ -17,6 +17,7 @@ dependencies:
   location: ^6.0.2
   lottie: ^3.1.2
   fl_chart: ^0.66.2
+  get: ^4.7.3
 
   # 🗺️ Map-related dependencies (for DummyMapPage)
   flutter_map: ^8.2.2
