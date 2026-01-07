@@ -120,7 +120,7 @@ class _summaryTile extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _summaryTile(this.title, this.value, this.icon, this.color, {super.key});
+  const _summaryTile(this.title, this.value, this.icon, this.color);
 
   @override
   Widget build(BuildContext context) {

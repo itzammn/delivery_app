@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 // Example:
 import '../auth/login.dart';
 import '../auth/edit_profile.dart';
-
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -20,12 +19,14 @@ class ProfilePage extends StatelessWidget {
           children: [
             const SizedBox(height: 40),
 
-
             // 🔹 Profile Info Card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 18),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 18,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(22),
@@ -68,7 +69,10 @@ class ProfilePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
@@ -76,7 +80,11 @@ class ProfilePage extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: const [
-                                Icon(Icons.circle, color: Colors.green, size: 10),
+                                Icon(
+                                  Icons.circle,
+                                  color: Colors.green,
+                                  size: 10,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   "Online",
@@ -103,7 +111,10 @@ class ProfilePage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
@@ -119,7 +130,11 @@ class ProfilePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: const [
                     _profileStat("126", "Deliveries", Icons.local_shipping),
-                    _profileStat("₹12,350", "Earnings", Icons.account_balance_wallet),
+                    _profileStat(
+                      "₹12,350",
+                      "Earnings",
+                      Icons.account_balance_wallet,
+                    ),
                     _profileStat("4.8", "Rating", Icons.star_rate_rounded),
                   ],
                 ),
@@ -132,7 +147,10 @@ class ProfilePage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 18,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
@@ -148,9 +166,17 @@ class ProfilePage extends StatelessWidget {
                   children: const [
                     _infoTile(Icons.phone, "Mobile", "+91 9876543210"),
                     Divider(),
-                    _infoTile(Icons.email_outlined, "Email", "aman.srivastava@email.com"),
+                    _infoTile(
+                      Icons.email_outlined,
+                      "Email",
+                      "aman.srivastava@email.com",
+                    ),
                     Divider(),
-                    _infoTile(Icons.motorcycle_rounded, "Vehicle", "Hero Splendor"),
+                    _infoTile(
+                      Icons.motorcycle_rounded,
+                      "Vehicle",
+                      "Hero Splendor",
+                    ),
                     Divider(),
                     _infoTile(Icons.location_on_outlined, "City", "Lucknow"),
                   ],
@@ -171,7 +197,9 @@ class ProfilePage extends StatelessWidget {
                         // 🔹 Navigate to Edit Profile Page
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                          MaterialPageRoute(
+                            builder: (context) => const EditProfilePage(),
+                          ),
                         );
                       },
                       icon: const Icon(Icons.edit, size: 20),
@@ -192,13 +220,22 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
+                        // 🔹 Fully clear all local storage on logout
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs
+                            .clear(); // Use clear() instead of remove() to wipe everything
+
                         // 🔹 Logout and go back to Login Page
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginPage()),
-                              (route) => false,
-                        );
+                        if (context.mounted) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                            (route) => false,
+                          );
+                        }
                       },
                       icon: const Icon(Icons.logout, size: 20),
                       label: const Text(
@@ -233,7 +270,7 @@ class _infoTile extends StatelessWidget {
   final String title;
   final String value;
 
-  const _infoTile(this.icon, this.title, this.value, {super.key});
+  const _infoTile(this.icon, this.title, this.value);
 
   @override
   Widget build(BuildContext context) {
@@ -252,17 +289,23 @@ class _infoTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.black54,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(value,
-                  style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
         ),
@@ -277,7 +320,7 @@ class _profileStat extends StatelessWidget {
   final String title;
   final IconData icon;
 
-  const _profileStat(this.value, this.title, this.icon, {super.key});
+  const _profileStat(this.value, this.title, this.icon);
 
   @override
   Widget build(BuildContext context) {
@@ -295,16 +338,18 @@ class _profileStat extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87),
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Colors.black87,
+          ),
         ),
         Text(
           title,
           style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 12,
-              fontWeight: FontWeight.w500),
+            color: Colors.black54,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

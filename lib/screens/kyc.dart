@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -174,15 +173,17 @@ class _KycPageState extends State<KycPage> {
 
   String? validateEmail(String? v) {
     if (v == null || v.isEmpty) return "Enter Email";
-    if (!RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v))
+    if (!RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
       return "Enter valid Email";
+    }
     return null;
   }
 
   String? validatePhone(String? v) {
     if (v == null || v.isEmpty) return "Enter Phone Number";
-    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(v))
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(v)) {
       return "Enter valid 10-digit Phone";
+    }
     return null;
   }
 
@@ -326,6 +327,30 @@ class _KycPageState extends State<KycPage> {
     ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 
+  Future<String?> _uploadImage(XFile file, String label) async {
+    try {
+      final result = await ApiHelper.uploadImage(file.path);
+      final msg = result["message"]?.toString().toLowerCase() ?? "";
+
+      if (result["success"] == true ||
+          result["status"] == "success" ||
+          msg.contains("success") ||
+          msg.contains("uploaded")) {
+        //  SUCCESS par ab koi snackbar nahi dikhegi
+        return result["data"]["url"];
+      } else {
+        _showSnack(
+          result["message"] ?? "Failed to upload $label",
+          Colors.redAccent,
+        );
+        return null;
+      }
+    } catch (e) {
+      _showSnack("Error uploading $label: $e", Colors.redAccent);
+      return null;
+    }
+  }
+
   // ---------- Navigation ----------
   void nextPage() async {
     if (!(_formKeys[_currentStep].currentState?.validate() ?? false)) return;
@@ -400,13 +425,10 @@ class _KycPageState extends State<KycPage> {
           _showSnack("Upload profile photo", Colors.redAccent);
           return false;
         }
-        data = {
-          "step": 3,
-          "mobile": mobile,
-          "profilePhoto": base64Encode(
-            await File(profilePhoto!.path).readAsBytes(),
-          ),
-        };
+        final profileUrl = await _uploadImage(profilePhoto!, "Profile Photo");
+        if (profileUrl == null) return false;
+
+        data = {"step": 3, "mobile": mobile, "profilePhoto": profileUrl};
         break;
 
       case 3:
@@ -460,18 +482,26 @@ class _KycPageState extends State<KycPage> {
           _showSnack("Please upload all required documents", Colors.redAccent);
           return false;
         }
+
+        final dlUrl = await _uploadImage(licencePhoto!, "Driving Licence");
+        if (dlUrl == null) return false;
+
+        final aadharUrl = await _uploadImage(aadharPhoto!, "Aadhar Card");
+        if (aadharUrl == null) return false;
+
+        final insuranceUrl = await _uploadImage(
+          insurancePhoto!,
+          "Insurance Document",
+        );
+        if (insuranceUrl == null) return false;
+        _showSnack("Image upload Successfully done!", Colors.green);
+
         data = {
           "step": 8,
           "mobile": mobile,
-          "drivingLicense": base64Encode(
-            await File(licencePhoto!.path).readAsBytes(),
-          ),
-          "aadharCard": base64Encode(
-            await File(aadharPhoto!.path).readAsBytes(),
-          ),
-          "insuranceDoc": base64Encode(
-            await File(insurancePhoto!.path).readAsBytes(),
-          ),
+          "drivingLicense": dlUrl,
+          "aadharCard": aadharUrl,
+          "insuranceDoc": insuranceUrl,
         };
         break;
     }
@@ -482,10 +512,13 @@ class _KycPageState extends State<KycPage> {
     print("📤 Sent Data: $data");
     print("📥 Response: $result");
 
+    final msg = result["message"]?.toString().toLowerCase() ?? "";
     final success =
         result["status"] == true ||
         result["success"] == true ||
-        result["status"] == "success";
+        result["status"] == "success" ||
+        msg.contains("success") ||
+        msg.contains("uploaded");
 
     if (success) {
       if (!navigate) {
@@ -669,14 +702,15 @@ class _KycPageState extends State<KycPage> {
                         bool showOtpField = otpSent && !otpVerified;
                         return showOtpField ? h * 0.60 : h * 0.46;
                       }
- 
+
                       if (_currentStep == 1) return h * 0.48; // Password
                       if (_currentStep == 2) return h * 0.42; // Photo
                       if (_currentStep == 3) return h * 0.55; // Bank
-                      if (_currentStep == 4) return h * 0.48; // 
+                      if (_currentStep == 4) return h * 0.48; //
                       if (_currentStep == 5) return h * 0.62; // Vehicle
-                      if (_currentStep == 6)
+                      if (_currentStep == 6) {
                         return h * 0.70; // Nominee (zyada fields)
+                      }
 
                       // STEP 8 — Documents (big images so more height)
                       return h * 0.75;
@@ -805,7 +839,7 @@ class _KycPageState extends State<KycPage> {
 
         // ✅ Gender dropdown (moved above Phone Number)
         DropdownButtonFormField<String>(
-          value: selectedGenderId,
+          initialValue: selectedGenderId,
           decoration: InputDecoration(
             prefixIcon: const Icon(Icons.person, color: Colors.black54),
             hintText: "Select Gender",
@@ -1025,7 +1059,7 @@ class _KycPageState extends State<KycPage> {
 
         // ✅ City dropdown from API
         DropdownButtonFormField<String>(
-          value: selectedCityId,
+          initialValue: selectedCityId,
           decoration: _dropdownDecoration("Select City"),
           items: cityList.map<DropdownMenuItem<String>>((city) {
             return DropdownMenuItem<String>(
@@ -1052,7 +1086,7 @@ class _KycPageState extends State<KycPage> {
     child: Column(
       children: [
         DropdownButtonFormField<String>(
-          value: selectedVehicleTypeId,
+          initialValue: selectedVehicleTypeId,
           decoration: _dropdownDecoration("Vehicle Type"),
           items: vehicleTypeList.map<DropdownMenuItem<String>>((vType) {
             return DropdownMenuItem<String>(

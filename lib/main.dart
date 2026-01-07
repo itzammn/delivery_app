@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:zamboree/Controller/LocationController.dart';
 import 'auth/login.dart';
 import 'auth/register.dart';
 import 'screens/home.dart';
@@ -6,6 +10,8 @@ import 'screens/kyc.dart';
 import 'screens/splash_screen.dart'; // ✅ correct path here
 
 void main() {
+    WidgetsFlutterBinding.ensureInitialized();
+  Get.put(LocationController());
   runApp(const MyApp());
 }
 
@@ -14,7 +20,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Zamboree Delivery',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

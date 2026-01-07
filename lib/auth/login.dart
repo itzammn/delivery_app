@@ -58,7 +58,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse("https://api.gamsgroup.in/delivery/auth/login/send-otp"),
+        Uri.parse("https://dev-api.gamsgroup.in/delivery/auth/login/send-otp"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"phone": mobile}),
       );
@@ -97,6 +97,8 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   // ---------------- VERIFY OTP ----------------
+  // Replace your _verifyOtp function with this updated version
+
   Future<void> _verifyOtp() async {
     final mobile = _mobileController.text.trim();
     final otp = _otpController.text.trim();
@@ -112,23 +114,59 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final response = await http.post(
-        Uri.parse("https://api.gamsgroup.in/delivery/auth/login/verify-otp"),
+        Uri.parse(
+          "https://dev-api.gamsgroup.in/delivery/auth/login/verify-otp",
+        ),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"phone": mobile, "otp": otp}),
       );
 
       final result = jsonDecode(response.body);
-      print("📩 Login Verify OTP Response: $result");
+      print("═══════════════════════════════════════════════════════════");
+      print("📩 Login Verify OTP Response:");
+      print("═══════════════════════════════════════════════════════════");
+      print(result);
+      print("═══════════════════════════════════════════════════════════");
 
       if (response.statusCode == 200 &&
           (result["success"] == true || result["status"] == true)) {
         final prefs = await SharedPreferences.getInstance();
 
+        // Extract token from different possible locations in response
+        String? token;
+
+        // Check various possible token locations
         if (result["token"] != null) {
-          await prefs.setString('token', result["token"]);
-          print("✅ Token Saved: ${result["token"]}");
+          token = result["token"];
+        } else if (result["data"] != null && result["data"]["token"] != null) {
+          token = result["data"]["token"];
+        } else if (result["accessToken"] != null) {
+          token = result["accessToken"];
+        } else if (result["data"] != null &&
+            result["data"]["accessToken"] != null) {
+          token = result["data"]["accessToken"];
         }
 
+        if (token != null && token.isNotEmpty) {
+          await prefs.setString('token', token);
+          print("✅ Token Saved Successfully!");
+          print(
+            "🔑 Token Preview: ${token.substring(0, token.length > 50 ? 50 : token.length)}...",
+          );
+
+          // Verify token was saved
+          final savedToken = prefs.getString('token');
+          if (savedToken != null) {
+            print("✅ Token Verified in Storage: YES");
+          } else {
+            print("❌ Token Verification FAILED - Not found in storage!");
+          }
+        } else {
+          print("⚠️ WARNING: No token found in response!");
+          print("Response structure: ${result.keys.toList()}");
+        }
+
+        // Save phone number
         await prefs.setString('last_logged_in', mobile);
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,8 +177,15 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         await Future.delayed(const Duration(milliseconds: 700));
-        if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
       } else {
+        print("❌ Login Failed:");
+        print("   Status Code: ${response.statusCode}");
+        print("   Success: ${result["success"]}");
+        print("   Message: ${result["message"]}");
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result["message"] ?? "Invalid OTP or User not found"),
@@ -148,7 +193,11 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print("❌ Verify OTP Exception:");
+      print("   Error: $e");
+      print("   Stack: $stackTrace");
+
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error: $e")));
