@@ -7,11 +7,11 @@ import 'auth/login.dart';
 import 'auth/register.dart';
 import 'screens/home.dart';
 import 'screens/kyc.dart';
-import 'screens/splash_screen.dart'; // ✅ correct path here
+import 'screens/splash_screen.dart';         
 
 void main() {
     WidgetsFlutterBinding.ensureInitialized();
-  Get.put(LocationController());
+  Get.put(LocationController()); 
   runApp(const MyApp());
 }
 

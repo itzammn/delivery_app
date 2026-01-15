@@ -1,108 +1,164 @@
 import 'package:flutter/material.dart';
 
-class DeliveredPage extends StatelessWidget {
+class DeliveredPage extends StatefulWidget {
   const DeliveredPage({super.key});
+
+  @override
+  State<DeliveredPage> createState() => _DeliveredPageState();
+}
+
+class _DeliveredPageState extends State<DeliveredPage> {
+  final Color primaryColor = const Color(0xFF1E3A8A); // Deep Blue
+  final Color accentColor = const Color(0xFF3B82F6); // Lighter Blue
+  final Color successColor = const Color(0xFF10B981); // Emerald Green
+  final Color warningColor = const Color(0xFFF59E0B); // Amber
+  final Color dangerColor = const Color(0xFFEF4444); // Red
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: Colors.grey.shade50,
+      body: Stack(
         children: [
-          const SizedBox(height: 20),
-
-          // 🔹 Header
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18),
-            child: Text(
-              "Today's Delivered Orders",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF19676E),
+          // Background Gradient Header
+          Container(
+            height: 220,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [primaryColor, accentColor],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
               ),
             ),
           ),
 
-          const SizedBox(height: 10),
-
-          // 🔹 Summary Row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
                   ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  _summaryTile("Total Orders", "6", Icons.list_alt_rounded,
-                      Color(0xFF40A798)),
-                  _summaryTile("Earnings", "₹1240", Icons.account_balance_wallet,
-                      Colors.amber),
-                  _summaryTile("Trip", "12.5 km", Icons.pin_drop_rounded,
-                      Colors.redAccent),
-                ],
-              ),
-            ),
-          ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Delivered Orders",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_outline_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
-          const SizedBox(height: 20),
+                // Summary Card
+                _buildSummaryCard(),
 
-          // 🔹 Delivered Orders List
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              children: const [
-                _deliveredCard(
-                  orderId: "#ORD4589",
-                  customer: "Rahul Sharma",
-                  address: "Green Park Colony",
-                  amount: "₹220.00",
-                  distance: "2.3 km",
-                  time: "10:45 AM",
+                const SizedBox(height: 20),
+
+                // List Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Today's History",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        "6 Orders",
+                        style: TextStyle(
+                          color: accentColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                _deliveredCard(
-                  orderId: "#ORD4590",
-                  customer: "Priya Verma",
-                  address: "City Mall, Sector 9",
-                  amount: "₹185.00",
-                  distance: "1.8 km",
-                  time: "11:10 AM",
-                ),
-                _deliveredCard(
-                  orderId: "#ORD4591",
-                  customer: "Amit Kumar",
-                  address: "Lake View Apartments",
-                  amount: "₹260.00",
-                  distance: "3.1 km",
-                  time: "12:00 PM",
-                ),
-                _deliveredCard(
-                  orderId: "#ORD4592",
-                  customer: "Neha Singh",
-                  address: "Sunshine Tower",
-                  amount: "₹175.00",
-                  distance: "1.5 km",
-                  time: "12:45 PM",
-                ),
-                _deliveredCard(
-                  orderId: "#ORD4593",
-                  customer: "Ravi Mehta",
-                  address: "Galaxy Heights",
-                  amount: "₹220.00",
-                  distance: "2.0 km",
-                  time: "1:20 PM",
+
+                const SizedBox(height: 12),
+
+                // Orders List
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: 5,
+                    itemBuilder: (context, index) {
+                      final orders = [
+                        {
+                          "id": "#ORD9283",
+                          "customer": "Rahul Sharma",
+                          "address": "Green Park Colony, Block B",
+                          "amount": "₹220.00",
+                          "time": "10:45 AM",
+                          "distance": "2.3 km",
+                        },
+                        {
+                          "id": "#ORD9284",
+                          "customer": "Priya Verma",
+                          "address": "City Mall, Sector 9, Lucknow",
+                          "amount": "₹185.00",
+                          "time": "11:10 AM",
+                          "distance": "1.8 km",
+                        },
+                        {
+                          "id": "#ORD9285",
+                          "customer": "Amit Kumar",
+                          "address": "Lake View Apartments, Flat 402",
+                          "amount": "₹260.00",
+                          "time": "12:00 PM",
+                          "distance": "3.1 km",
+                        },
+                        {
+                          "id": "#ORD9286",
+                          "customer": "Neha Singh",
+                          "address": "Sunshine Tower, 12th Floor",
+                          "amount": "₹175.00",
+                          "time": "12:45 PM",
+                          "distance": "1.5 km",
+                        },
+                        {
+                          "id": "#ORD9287",
+                          "customer": "Ravi Mehta",
+                          "address": "Galaxy Heights, Penthouse",
+                          "amount": "₹220.00",
+                          "time": "01:20 PM",
+                          "distance": "2.0 km",
+                        },
+                      ];
+                      return _buildOrderCard(orders[index]);
+                    },
+                  ),
                 ),
               ],
             ),
@@ -111,198 +167,204 @@ class DeliveredPage extends StatelessWidget {
       ),
     );
   }
-}
 
-// 🔹 Summary Tile Widget
-class _summaryTile extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
+  Widget _buildSummaryCard() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _summaryItem("6", "Orders", Icons.shopping_bag_outlined, accentColor),
+          _summaryItem(
+            "₹1,240",
+            "Earnings",
+            Icons.account_balance_wallet_outlined,
+            successColor,
+          ),
+          _summaryItem("12.5", "km", Icons.map_outlined, warningColor),
+        ],
+      ),
+    );
+  }
 
-  const _summaryTile(this.title, this.value, this.icon, this.color);
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _summaryItem(String value, String label, IconData icon, Color color) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
+            color: color.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: 22),
+          child: Icon(icon, color: color, size: 24),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 10),
         Text(
           value,
           style: const TextStyle(
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.black,
+            color: Colors.black87,
           ),
         ),
         Text(
-          title,
-          style: const TextStyle(
-            color: Colors.black54,
+          label,
+          style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade500,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
-}
 
-// 🔹 Delivered Order Card Widget
-class _deliveredCard extends StatelessWidget {
-  final String orderId;
-  final String customer;
-  final String address;
-  final String amount;
-  final String distance;
-  final String time;
-
-  const _deliveredCard({
-    required this.orderId,
-    required this.customer,
-    required this.address,
-    required this.amount,
-    required this.distance,
-    required this.time,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1.5,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  orderId,
-                  style: const TextStyle(
+  Widget _buildOrderCard(Map<String, String> order) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  order['id']!,
+                  style: TextStyle(
+                    color: primaryColor,
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    color: Color(0xFF19676E),
+                    fontSize: 12,
                   ),
                 ),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time,
-                        color: Colors.black45, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      time,
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Customer Name
-            Text(
-              customer,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
               ),
-            ),
-
-            const SizedBox(height: 4),
-
-            // Address
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined,
-                    color: Colors.redAccent, size: 16),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    address,
-                    style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500),
+              Row(
+                children: [
+                  Icon(
+                    Icons.access_time_rounded,
+                    size: 14,
+                    color: Colors.grey.shade400,
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 8),
-
-            // Footer Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Distance: $distance",
-                  style: const TextStyle(
-                      color: Colors.black87,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
-                ),
-                Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF40A798).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+                  const SizedBox(width: 4),
+                  Text(
+                    order['time']!,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  child: Text(
-                    amount,
-                    style: const TextStyle(
-                      color: Colors.green,
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            order['customer']!,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_rounded,
+                size: 16,
+                color: dangerColor.withOpacity(0.7),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  order['address']!,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.motorcycle_rounded,
+                    size: 18,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    order['distance']!,
+                    style: TextStyle(
+                      color: Colors.grey.shade700,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                   ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 6),
-
-            // Status Chip
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  "Delivered",
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                ],
               ),
-            ),
-          ],
-        ),
+              Row(
+                children: [
+                  Text(
+                    "Earned: ",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                  ),
+                  Text(
+                    order['amount']!,
+                    style: TextStyle(
+                      color: successColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

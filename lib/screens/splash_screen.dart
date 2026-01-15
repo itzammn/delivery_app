@@ -247,11 +247,11 @@
 
 //           Center(
 //             child: Column(
-//               mainAxisAlignment: MainAxisAlignment.center,
+//               mainAxisAlignment: MainAxisAlignment.center, 
 //               children: [
 //                 Image.asset(
 //                   'assets/images/illustration.png',
-//                   height: 350,
+//                   height: 350, 
 //                   width: 350,
 //                 ),
 //                 const SizedBox(height: 20),
@@ -352,14 +352,14 @@ class _SplashScreenState extends State<SplashScreen> {
     _initApp();
   }
 
-  /// 🔹 App init: Location + Token check
+  /// App init: Location + Token check
   Future<void> _initApp() async {
     await _handleLocationPermission();
     await Future.delayed(const Duration(seconds: 3));
     await _goNextScreen();
   }
 
-  /// 🔹 Decide next screen based on token
+  /// Decide next screen based on token
   Future<void> _goNextScreen() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -367,10 +367,10 @@ class _SplashScreenState extends State<SplashScreen> {
     debugPrint("🔐 Splash Token: $token");
 
     if (token != null && token.isNotEmpty) {
-      // ✅ Token present → Dashboard
+      // Token present → Dashboard
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
-      // ❌ Token missing → Login
+      // Token missing → Login
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
@@ -426,7 +426,7 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          /// 🌈 Top Curve
+          /// Top Curve
           CustomPaint(
             size: Size(MediaQuery.of(context).size.width, 170),
             painter: _SplashCurvePainter(),

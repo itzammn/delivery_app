@@ -404,7 +404,7 @@ class _KycPageState extends State<KycPage> {
         data = {
           "step": 1,
           "name": nameController.text.trim(),
-          "dob": dobController.text.trim(),
+          "dob": convertToApiDate(dobController.text.trim()),
           "mobile": mobile,
           "gender": selectedGenderId,
         };
@@ -469,7 +469,7 @@ class _KycPageState extends State<KycPage> {
           "mobile": mobile,
           "nomineeName": nomineeNameController.text.trim(),
           "relationship": nomineeRelationshipController.text.trim(),
-          "nomineeDOB": nomineeDobController.text.trim(),
+          "nomineeDOB": convertToApiDate(nomineeDobController.text.trim()),
           "nomineeMobile": nomineePhoneController.text.trim(),
           "emergencyMobile": nomineeEmergencyPhoneController.text.trim(),
         };
@@ -521,6 +521,14 @@ class _KycPageState extends State<KycPage> {
         msg.contains("uploaded");
 
     if (success) {
+      if (_currentStep == 0) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_name', nameController.text.trim());
+        print(
+          "✅ User Name Saved during Registration: ${nameController.text.trim()}",
+        );
+      }
+
       if (!navigate) {
         _showSnack(
           result["message"] ?? "Proceeding to OTP...",

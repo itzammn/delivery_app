@@ -169,6 +169,25 @@ class _LoginPageState extends State<LoginPage> {
         // Save phone number
         await prefs.setString('last_logged_in', mobile);
 
+        // Try to save user name if provided in response
+        String? userName;
+        if (result["user"] != null && result["user"]["name"] != null) {
+          userName = result["user"]["name"];
+        } else if (result["data"] != null &&
+            result["data"]["user"] != null &&
+            result["data"]["user"]["name"] != null) {
+          userName = result["data"]["user"]["name"];
+        } else if (result["data"] != null && result["data"]["name"] != null) {
+          userName = result["data"]["name"];
+        } else if (result["name"] != null) {
+          userName = result["name"];
+        }
+
+        if (userName != null) {
+          await prefs.setString('user_name', userName);
+          print("✅ User Name Saved: $userName");
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result["message"] ?? "Login successful!"),
