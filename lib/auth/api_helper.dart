@@ -10,20 +10,24 @@ class ApiHelper {
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token'); // ✅ Match with login page key
-    print("🔐 Retrieved Token: ${token != null ? 'Found (${token.substring(0, 20)}...)' : 'NULL'}");
+    print(
+      "🔐 Retrieved Token: ${token != null ? 'Found (${token.substring(0, 20)}...)' : 'NULL'}",
+    );
     return token;
   }
 
   // Get headers with authentication
   static Future<Map<String, String>> _getHeaders() async {
     final token = await _getToken();
-    
+
     final headers = {
       "Content-Type": "application/json",
       if (token != null && token.isNotEmpty) "Authorization": "Bearer $token",
     };
-    
-    print("📋 Headers prepared: ${token != null ? 'With Authorization' : 'Without Authorization'}");
+
+    print(
+      "📋 Headers prepared: ${token != null ? 'With Authorization' : 'Without Authorization'}",
+    );
     return headers;
   }
 
@@ -33,11 +37,11 @@ class ApiHelper {
   ) async {
     print("📤 POST Request: $endpoint");
     print("📦 Request Data: $data");
-    
+
     try {
       final headers = await _getHeaders();
       print("🔑 Headers: $headers");
-      
+
       final response = await http.post(
         Uri.parse("$_baseUrl$endpoint"),
         headers: headers,
@@ -56,19 +60,19 @@ class ApiHelper {
 
   static Future<Map<String, dynamic>> get(String endpoint) async {
     print("📤 GET Request: $endpoint");
-    
+
     try {
       final headers = await _getHeaders();
       print("🔑 Headers: $headers");
-      
+
       final response = await http.get(
         Uri.parse("$_baseUrl$endpoint"),
         headers: headers,
       );
-      
+
       print("📥 Response Status: ${response.statusCode}");
       print("📥 Response Body: ${response.body}");
-      
+
       return jsonDecode(response.body);
     } catch (e) {
       print("❌ Network Error: $e");
@@ -82,19 +86,19 @@ class ApiHelper {
   ) async {
     print("📤 PUT Request: $endpoint");
     print("📦 Request Data: $data");
-    
+
     try {
       final headers = await _getHeaders();
-      
+
       final response = await http.put(
         Uri.parse("$_baseUrl$endpoint"),
         headers: headers,
         body: jsonEncode(data),
       );
-      
+
       print("📥 Response Status: ${response.statusCode}");
       print("📥 Response Body: ${response.body}");
-      
+
       return jsonDecode(response.body);
     } catch (e) {
       print("❌ Network Error: $e");
@@ -105,7 +109,7 @@ class ApiHelper {
   static Future<Map<String, dynamic>> uploadImage(String filePath) async {
     try {
       final token = await _getToken();
-      
+
       final request = http.MultipartRequest(
         "POST",
         Uri.parse("$_baseUrl/upload/delivery-uploader?folder=Delivery"),
@@ -140,6 +144,11 @@ class ApiHelper {
       "latitude": lat,
       "longitude": lng,
     });
+  }
+
+  /// ✅ ACCEPT ORDER API
+  static Future<Map<String, dynamic>> acceptOrder(String orderId) async {
+    return post("/food-delivery/order-accept", {"orderId": orderId});
   }
 }
 // import 'dart:convert';

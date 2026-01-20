@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -9,6 +10,8 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:zamboree/Controller/LocationController.dart';
+import 'package:zamboree/Controller/SocketController.dart';
+import 'package:get/get.dart';
 import 'package:zamboree/screens/EditMapPageLocation.dart';
 import 'package:zamboree/screens/ZoneMapPage.dart';
 import 'package:zamboree/auth/api_helper.dart';
@@ -119,6 +122,9 @@ class _DashboardState extends State<Dashboard> {
           isOnline = true;
           isSearching = true;
         });
+        // SOCKET CONNECT HERE
+        Get.find<SocketController>().connectSocket();
+
         _startSearchCycle();
         if (mounted) {
           _showSnackBar("You are now online!", successColor);
@@ -246,10 +252,10 @@ class _DashboardState extends State<Dashboard> {
   void _startSearchCycle() {
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted && isOnline) {
-        setState(() {
-          isSearching = false;
-          hasDelivery = true;
-        });
+        // setState(() {
+        // isSearching = false;
+        // hasDelivery = true;
+        // });
         _startDeliveryTimer();
       }
     });
@@ -281,6 +287,30 @@ class _DashboardState extends State<Dashboard> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  String _getDistance(dynamic location) {
+    if (location == null) return "--- km";
+    try {
+      double? lat = double.tryParse(location['lat']?.toString() ?? "");
+      double? lng = double.tryParse(location['lng']?.toString() ?? "");
+      if (lat == null || lng == null) return "--- km";
+
+      double distanceInMeters = Geolocator.distanceBetween(
+        locationController.latitude.value,
+        locationController.longitude.value,
+        lat,
+        lng,
+      );
+
+      if (distanceInMeters < 1000) {
+        return "${distanceInMeters.toStringAsFixed(0)} m";
+      } else {
+        return "${(distanceInMeters / 1000).toStringAsFixed(1)} km";
+      }
+    } catch (e) {
+      return "--- km";
+    }
   }
 
   @override
@@ -476,7 +506,18 @@ class _DashboardState extends State<Dashboard> {
                 children: [
                   _buildStatusToggle(),
                   const SizedBox(height: 24),
-                  _buildDynamicContent(size),
+                  Obx(() {
+                    final socketController = Get.find<SocketController>();
+                    final order = socketController.lastReceivedOrder;
+
+                    // ✅ SOCKET ORDER AAYA → SAME UI, BUT DYNAMIC DATA
+                    if (order.isNotEmpty) {
+                      return _buildSocketOrderContent(order);
+                    }
+
+                    // ❌ STATIC ORDER UI NAHI
+                    return _buildDynamicContent(size);
+                  }),
                 ],
               ),
             ),
@@ -718,6 +759,128 @@ class _DashboardState extends State<Dashboard> {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildSocketOrderContent(Map<String, dynamic> order) {
+    final socketController = Get.find<SocketController>();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // HEADER
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: successColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                "LIVE ORDER",
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            const Text("⭐ 5.0", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // 💰 AMOUNT (backend → amount)
+        Text(
+          "₹${order['shipping_charger'] ?? 0}",
+          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+        ),
+
+        const SizedBox(height: 12),
+
+        // 📍 PICKUP
+        _deliveryInfoRow(
+          Icons.storefront_rounded,
+          order['pickup']?['address'] ??
+              order['pickup']?['name'] ??
+              "Pickup Location",
+          _getDistance(order['pickup']),
+        ),
+
+        const SizedBox(height: 10),
+
+        // 📍 DROP
+        _deliveryInfoRow(
+          Icons.location_on_rounded,
+          order['drop']?['address'] ??
+              order['drop']?['name'] ??
+              "Drop Location",
+          _getDistance(order['drop']),
+        ),
+
+        const SizedBox(height: 24),
+
+        // ACTION BUTTONS (with old UI styling)
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {
+                  socketController.lastReceivedOrder.clear();
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  side: BorderSide(color: Colors.grey.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  "Decline",
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                onPressed: () {
+                  socketController.acceptOrder(order['orderId'] ?? "");
+                  Get.to(
+                    () => DummyMapPage(
+                      pickup:
+                          order['pickup']?['address'] ??
+                          order['pickup']?['name'] ??
+                          "Pickup Location",
+                      distance: _getDistance(order['pickup']),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  "Accept Order",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _deliveryInfoRow(IconData icon, String title, String distance) {

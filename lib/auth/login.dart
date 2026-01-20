@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get/get.dart';
+import 'package:zamboree/Controller/SocketController.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -132,6 +134,16 @@ class _LoginPageState extends State<LoginPage> {
           (result["success"] == true || result["status"] == true)) {
         final prefs = await SharedPreferences.getInstance();
 
+        // ✅ DELIVERY PARTNER ID SAVE KARO (ROOM NAME)
+        final partnerId =
+            result["data"]["deliveryPartner"]["_id"].toString();
+
+        await prefs.setString("delivery_partner_id", partnerId);
+        print("✅ delivery_partner_id saved: $partnerId");
+
+        // 🔌 AB SOCKET CONNECT KARO
+        Get.find<SocketController>().connectSocket();
+
         // Extract token from different possible locations in response
         String? token;
 
@@ -158,6 +170,8 @@ class _LoginPageState extends State<LoginPage> {
           final savedToken = prefs.getString('token');
           if (savedToken != null) {
             print("✅ Token Verified in Storage: YES");
+            // 🔌 Reconnect socket with new token
+            // Get.find<SocketController>().reConnect();
           } else {
             print("❌ Token Verification FAILED - Not found in storage!");
           }

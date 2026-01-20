@@ -3,15 +3,17 @@ import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:zamboree/Controller/LocationController.dart';
+import 'package:zamboree/Controller/SocketController.dart';
 import 'auth/login.dart';
 import 'auth/register.dart';
 import 'screens/home.dart';
 import 'screens/kyc.dart';
-import 'screens/splash_screen.dart';         
+import 'screens/splash_screen.dart';
 
 void main() {
-    WidgetsFlutterBinding.ensureInitialized();
-  Get.put(LocationController()); 
+  WidgetsFlutterBinding.ensureInitialized();
+  Get.put(LocationController());
+  Get.put(SocketController());
   runApp(const MyApp());
 }
 
