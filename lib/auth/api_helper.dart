@@ -150,6 +150,29 @@ class ApiHelper {
   static Future<Map<String, dynamic>> acceptOrder(String orderId) async {
     return post("/food-delivery/order-accept", {"orderId": orderId});
   }
+
+  /// ORDER REACHED API
+  static Future<Map<String, dynamic>> orderReached({
+    required String orderId,
+    required double lat,
+    required double lng,
+  }) async {
+    return post("/food-delivery/order-reached", {
+      "orderId": orderId,
+      "lat": lat,
+      "lng": lng,
+    });
+  }
+
+  static Future<Map<String, dynamic>> orderPickup({
+    required String orderId,
+    required String otp,
+  }) async {
+    return post("/food-delivery/order-pickup", {
+      "orderId": orderId,
+      "otp": otp,
+    });
+  }
 }
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;

@@ -22,6 +22,7 @@ import 'profile.dart';
 import 'notifications.dart';
 import 'support.dart';
 import 'incentives.dart';
+import 'OrderMapPage.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key, required this.title});
@@ -852,14 +853,9 @@ class _DashboardState extends State<Dashboard> {
               child: ElevatedButton(
                 onPressed: () {
                   socketController.acceptOrder(order['orderId'] ?? "");
+                  // Pass a copy of the map so it's not cleared when the controller clears lastReceivedOrder
                   Get.to(
-                    () => DummyMapPage(
-                      pickup:
-                          order['pickup']?['address'] ??
-                          order['pickup']?['name'] ??
-                          "Pickup Location",
-                      distance: _getDistance(order['pickup']),
-                    ),
+                    () => OrderMapPage(order: Map<String, dynamic>.from(order)),
                   );
                 },
                 style: ElevatedButton.styleFrom(
