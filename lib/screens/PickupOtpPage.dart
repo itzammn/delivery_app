@@ -58,7 +58,12 @@ class _PickupOtpPageState extends State<PickupOtpPage> {
           colorText: Colors.white,
         );
         // Navigate to Order Details Page with the response data (or order ID)
-        Get.off(() => OrderDetailsPage(orderData: res["data"] ?? res));
+        final order =
+            res["data"]?["order"] ?? res["order"] ?? res["data"] ?? res;
+
+        print("🟢 FINAL ORDER SENT TO DETAILS PAGE: $order");
+
+        Get.off(() => OrderDetailsPage(orderData: order));
       } else {
         Get.snackbar(
           "Failed",

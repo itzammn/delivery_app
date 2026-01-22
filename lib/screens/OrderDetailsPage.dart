@@ -7,11 +7,12 @@ class OrderDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Extract data safety
-    final order = orderData['order'] ?? orderData;
-    final items = order['items'] as List? ?? [];
-    final customer = order['customer'] ?? {};
-    final drop = order['drop'] ?? {};
+    debugPrint("✅ ORDER DETAILS PAGE DATA: $orderData");
+
+    /// 🔥 BACKEND STRUCTURE KE HISAB SE DATA
+    final Map<String, dynamic> order = orderData;
+    final List products = order['products'] ?? [];
+    final Map address = order['address'] ?? {};
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -28,44 +29,52 @@ class OrderDetailsPage extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            _buildStatusHeader(order['status'] ?? "Picked Up"),
+            /// STATUS
+            _buildStatusHeader(order),
+
+            /// CUSTOMER DETAILS
             _buildInfoCard("Customer Details", [
-              _infoRow(Icons.person, customer['name'] ?? "Customer Name"),
-              _infoRow(Icons.phone, customer['mobile'] ?? "Not available"),
-              _infoRow(Icons.location_on, drop['address'] ?? "Drop Address"),
+              _infoRow(
+                Icons.person,
+                address['customer_name']?.toString() ?? "N/A",
+              ),
+              _infoRow(Icons.phone, address['mobile']?.toString() ?? "N/A"),
+              _infoRow(
+                Icons.location_on,
+                "${address['addressLine1'] ?? ""}, ${address['city'] ?? ""}",
+              ),
             ]),
+
+            /// ORDER ITEMS
             _buildInfoCard(
               "Order Items",
-              items
-                  .map((item) {
-                    return _itemRow(
-                      item['name'] ?? "Unknown Item",
-                      item['quantity']?.toString() ?? "1",
-                      "₹${item['price'] ?? '0'}",
-                    );
-                  })
-                  .toList()
-                  .cast<Widget>(),
+              products.isEmpty
+                  ? [const Text("No items found")]
+                  : products.map<Widget>((item) {
+                      return _itemRow(
+                        item['productName'] ?? "Item",
+                        item['quantity'].toString(),
+                      );
+                    }).toList(),
             ),
+
+            /// PAYMENT SUMMARY
             _buildInfoCard("Payment Summary", [
-              _paymentRow("Item Total", "₹${order['item_total'] ?? '0'}"),
-              _paymentRow(
-                "Shipping Fee",
-                "₹${order['shipping_charger'] ?? '0'}",
-              ),
+              _paymentRow("Payment Method", order['pay_method'] ?? "N/A"),
               const Divider(),
               _paymentRow(
                 "Total Amount",
-                "₹${order['total_amount'] ?? '0'}",
+                "₹${order['amount'] ?? 0}",
                 isTotal: true,
               ),
             ]),
+
             const SizedBox(height: 30),
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ElevatedButton(
-                onPressed: () =>
-                    Get.offAllNamed('/dashboard'), // Or wherever to go back
+                onPressed: () => Get.offAllNamed('/dashboard'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1E3A8A),
                   minimumSize: const Size(double.infinity, 56),
@@ -75,14 +84,11 @@ class OrderDetailsPage extends StatelessWidget {
                 ),
                 child: const Text(
                   "BACK TO DASHBOARD",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
+
             const SizedBox(height: 40),
           ],
         ),
@@ -90,7 +96,9 @@ class OrderDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusHeader(String status) {
+  // ================= UI HELPERS =================
+
+  Widget _buildStatusHeader(Map<String, dynamic> order) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -105,18 +113,13 @@ class OrderDetailsPage extends StatelessWidget {
         children: [
           const Icon(Icons.check_circle, size: 64, color: Colors.green),
           const SizedBox(height: 12),
-          Text(
-            status.toUpperCase(),
-            style: const TextStyle(
+          const Text(
+            "PICKED UP",
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w800,
               color: Colors.green,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Order ID: #${orderData['orderId'] ?? '---'}",
-            style: TextStyle(color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -125,18 +128,13 @@ class OrderDetailsPage extends StatelessWidget {
 
   Widget _buildInfoCard(String title, List<Widget> children) {
     return Container(
-      width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -158,52 +156,41 @@ class OrderDetailsPage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade400),
+          Icon(icon, size: 20, color: Colors.grey),
           const SizedBox(width: 12),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
+          Expanded(child: Text(text)),
         ],
       ),
     );
   }
 
-  Widget _itemRow(String name, String qty, String price) {
+  Widget _itemRow(String name, String qty) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text("$name x$qty", style: const TextStyle(fontSize: 14)),
-          Text(
-            price,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-        ],
+        children: [Text("$name x$qty"), const Text("✔")],
       ),
     );
   }
 
   Widget _paymentRow(String label, String value, {bool isTotal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isTotal ? 16 : 14,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-            ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
