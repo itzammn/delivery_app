@@ -4,6 +4,7 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:zamboree/Controller/LocationController.dart';
 import 'package:zamboree/Controller/SocketController.dart';
+import 'package:zamboree/Controller/ConfigController.dart';
 import 'auth/login.dart';
 import 'auth/register.dart';
 import 'screens/home.dart';
@@ -14,6 +15,9 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   Get.put(LocationController());
   Get.put(SocketController());
+  Get.put(
+    ConfigController(),
+  ); // 📱 Config for ringtone, location update interval, etc.
   runApp(const MyApp());
 }
 

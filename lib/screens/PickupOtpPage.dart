@@ -121,12 +121,12 @@ class _PickupOtpPageState extends State<PickupOtpPage> {
             ),
             const SizedBox(height: 30),
             const Text(
-              "Experience OTP",
+              "OTP",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
-              "Please enter the 4-digit OTP shared by the restaurant to confirm pickup.",
+              "Please enter the 4-digit OTP shared at the pickup location to confirm pickup.",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
             ),

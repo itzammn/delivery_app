@@ -6,17 +6,17 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:zamboree/Controller/LocationController.dart';
 import 'package:zamboree/auth/api_helper.dart';
-import 'package:zamboree/screens/PickupOtpPage.dart';
+import 'package:zamboree/screens/DeliveryOtpPage.dart';
 
-class OrderMapPage extends StatefulWidget {
+class DropMapPage extends StatefulWidget {
   final Map<String, dynamic> order;
-  const OrderMapPage({super.key, required this.order});
+  const DropMapPage({super.key, required this.order});
 
   @override
-  State<OrderMapPage> createState() => _OrderMapPageState();
+  State<DropMapPage> createState() => _DropMapPageState();
 }
 
-class _OrderMapPageState extends State<OrderMapPage> {
+class _DropMapPageState extends State<DropMapPage> {
   final locationController = Get.find<LocationController>();
   GoogleMapController? mapController;
 
@@ -26,9 +26,9 @@ class _OrderMapPageState extends State<OrderMapPage> {
   String distanceText = "Calculating...";
 
   late LatLng userLocation;
-  late LatLng pickupLocation;
+  late LatLng dropLocation;
 
-  bool isReachedLoading = false;
+  bool isArrivedLoading = false;
 
   @override
   void initState() {
@@ -44,8 +44,9 @@ class _OrderMapPageState extends State<OrderMapPage> {
       locationController.longitude.value,
     );
 
-    final pickup = widget.order['pickup'];
-    final location = pickup?['location'];
+    // Extracting from address -> location -> coordinates [lng, lat]
+    final address = widget.order['address'];
+    final location = address?['location'];
     final coords = location?['coordinates'];
 
     double lat = 0.0;
@@ -55,20 +56,21 @@ class _OrderMapPageState extends State<OrderMapPage> {
       lng = double.tryParse(coords[0].toString()) ?? 0.0;
       lat = double.tryParse(coords[1].toString()) ?? 0.0;
     } else {
-      lat = double.tryParse(pickup?['lat']?.toString() ?? "0") ?? 0;
-      lng = double.tryParse(pickup?['lng']?.toString() ?? "0") ?? 0;
+      // Fallback to direct lat/lng if available
+      lat = double.tryParse(address?['lat']?.toString() ?? "0") ?? 0;
+      lng = double.tryParse(address?['lng']?.toString() ?? "0") ?? 0;
     }
 
-    pickupLocation = LatLng(lat, lng);
-    debugPrint("📍 PICKUP LOCATION: $lat, $lng");
+    dropLocation = LatLng(lat, lng);
+    debugPrint("📍 DROP LOCATION: $lat, $lng");
   }
 
   void _calculateDistance() {
     double distanceInMeters = Geolocator.distanceBetween(
       userLocation.latitude,
       userLocation.longitude,
-      pickupLocation.latitude,
-      pickupLocation.longitude,
+      dropLocation.latitude,
+      dropLocation.longitude,
     );
 
     distanceInKm = distanceInMeters / 1000;
@@ -88,11 +90,12 @@ class _OrderMapPageState extends State<OrderMapPage> {
         infoWindow: const InfoWindow(title: 'Your Location'),
       ),
       Marker(
-        markerId: const MarkerId('pickup_location'),
-        position: pickupLocation,
+        markerId: const MarkerId('drop_location'),
+        position: dropLocation,
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
-          title: 'Pickup: ${widget.order['pickup']?['name'] ?? "Store"}',
+          title:
+              'Drop: ${widget.order['address']?['customer_name'] ?? "Customer"}',
         ),
       ),
     };
@@ -100,7 +103,7 @@ class _OrderMapPageState extends State<OrderMapPage> {
     polylines = {
       Polyline(
         polylineId: const PolylineId('route'),
-        points: [userLocation, pickupLocation],
+        points: [userLocation, dropLocation],
         color: Colors.blue,
         width: 5,
         patterns: [PatternItem.dash(20), PatternItem.gap(10)],
@@ -110,11 +113,23 @@ class _OrderMapPageState extends State<OrderMapPage> {
 
   Future<void> _launchNavigation() async {
     final url =
-        "https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${pickupLocation.latitude},${pickupLocation.longitude}&travelmode=driving";
+        "https://www.google.com/maps/dir/?api=1&origin=${userLocation.latitude},${userLocation.longitude}&destination=${dropLocation.latitude},${dropLocation.longitude}&travelmode=driving";
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else {
       Get.snackbar("Error", "Could not launch maps");
+    }
+  }
+
+  void _makeCall() async {
+    final phone = widget.order['address']?['mobile']?.toString();
+    if (phone != null) {
+      final url = "tel:$phone";
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url));
+      } else {
+        Get.snackbar("Error", "Could not launch dialer");
+      }
     }
   }
 
@@ -127,34 +142,34 @@ class _OrderMapPageState extends State<OrderMapPage> {
     if (mapController == null) return;
 
     LatLngBounds bounds;
-    if (userLocation.latitude > pickupLocation.latitude) {
+    if (userLocation.latitude > dropLocation.latitude) {
       bounds = LatLngBounds(
         southwest: LatLng(
-          pickupLocation.latitude,
-          userLocation.longitude < pickupLocation.longitude
+          dropLocation.latitude,
+          userLocation.longitude < dropLocation.longitude
               ? userLocation.longitude
-              : pickupLocation.longitude,
+              : dropLocation.longitude,
         ),
         northeast: LatLng(
           userLocation.latitude,
-          userLocation.longitude > pickupLocation.longitude
+          userLocation.longitude > dropLocation.longitude
               ? userLocation.longitude
-              : pickupLocation.longitude,
+              : dropLocation.longitude,
         ),
       );
     } else {
       bounds = LatLngBounds(
         southwest: LatLng(
           userLocation.latitude,
-          userLocation.longitude < pickupLocation.longitude
+          userLocation.longitude < dropLocation.longitude
               ? userLocation.longitude
-              : pickupLocation.longitude,
+              : dropLocation.longitude,
         ),
         northeast: LatLng(
-          pickupLocation.latitude,
-          userLocation.longitude > pickupLocation.longitude
+          dropLocation.latitude,
+          userLocation.longitude > dropLocation.longitude
               ? userLocation.longitude
-              : pickupLocation.longitude,
+              : dropLocation.longitude,
         ),
       );
     }
@@ -162,105 +177,107 @@ class _OrderMapPageState extends State<OrderMapPage> {
     mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
   }
 
-  /// 🔔 CONFIRMATION DIALOG
-  void _confirmReachedLocation() {
+  void _confirmArrival() {
     Get.dialog(
       AlertDialog(
         title: const Text(
           "Confirm Arrival",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          "Are you sure you have reached the pickup location?",
-        ),
+        content: const Text("Have you reached the customer's drop location?"),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
-          /// ❌ NO BUTTON → Black text
           TextButton(
             onPressed: () => Get.back(),
             child: const Text(
               "No",
               style: TextStyle(
-                color: Colors.black, // ✅ BLACK TEXT
-                fontWeight: FontWeight.bold,
+                color: Colors.black, // ❌ No = Black
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-
-          /// ✅ YES BUTTON → Black background + White text
           ElevatedButton(
             onPressed: () {
               Get.back();
-              _callReachedApi();
+              _callArrivedApi();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black, // ✅ BLACK BG
-              foregroundColor: Colors.white, // ✅ WHITE TEXT
+              backgroundColor: Colors.black, // Button color
+              foregroundColor: Colors.white, // ✅ Text color (BEST way)
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
             child: const Text(
               "Yes",
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
         ],
       ),
+
       barrierDismissible: false,
     );
   }
 
-  /// 📍 REACHED LOCATION API
-  Future<void> _callReachedApi() async {
-    // Check for both 'orderId' and '_id' keys just in case
-    final orderId = widget.order['orderId'] ?? widget.order['_id'];
+  Future<void> _callArrivedApi() async {
+    // Debugging ke liye full data print karein
+    debugPrint("🔍 Full Order Data: ${widget.order}");
+
+    // Har sambhav jagah par ID check karein
+    final orderId =
+        widget.order['orderId'] ??
+        widget.order['_id'] ??
+        widget.order['id'] ??
+        widget.order['order']?['_id'] ??
+        widget.order['order']?['orderId'];
 
     if (orderId == null || orderId.toString().isEmpty) {
-      print("❌ Order Data: ${widget.order}"); // Debug print
-      Get.snackbar("Error", "Invalid order ID");
+      Get.snackbar("Error", "Invalid order ID. Check console for logs.");
       return;
     }
 
     try {
-      setState(() => isReachedLoading = true);
+      setState(() => isArrivedLoading = true);
 
-      final res = await ApiHelper.orderReached(
-        orderId: orderId,
+      // 1. Call Order Arrived API
+      final resArrived = await ApiHelper.orderArrived(
+        orderId: orderId.toString(),
         lat: userLocation.latitude,
         lng: userLocation.longitude,
       );
 
-      if (res["success"] == true) {
-        Get.snackbar(
-          "Reached Location",
-          "OTP has been sent to the restaurant",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-        );
+      if (resArrived["success"] == true) {
+        // 2. Call Order OTP API to send OTP to customer
+        final resOtp = await ApiHelper.sendOrderOtp(orderId.toString());
 
-        // Navigate to OTP Verification Page
-        Get.to(() => PickupOtpPage(orderId: orderId.toString()));
+        if (resOtp["success"] == true) {
+          Get.snackbar(
+            "Arrived",
+            "OTP has been sent to the customer",
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
+          Get.to(
+            () => DeliveryOtpPage(
+              orderId: orderId.toString(),
+              phoneNumber: widget.order['address']?['mobile']?.toString(),
+            ),
+          );
+        } else {
+          Get.snackbar("Error", resOtp["message"] ?? "Failed to send OTP");
+        }
       } else {
         Get.snackbar(
-          "Failed",
-          res["message"] ?? "Failed to update status",
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+          "Error",
+          resArrived["message"] ?? "Failed to update arrival",
         );
       }
     } catch (e) {
-      Get.snackbar(
-        "Error",
-        "Something went wrong",
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      Get.snackbar("Error", "Something went wrong");
     } finally {
-      setState(() => isReachedLoading = false);
+      setState(() => isArrivedLoading = false);
     }
   }
 
@@ -303,7 +320,7 @@ class _OrderMapPageState extends State<OrderMapPage> {
             ),
 
             Align(
-              alignment: const Alignment(0, 0.90), // ✅ UPAR SHIFTED
+              alignment: const Alignment(0, 0.90), // ✅ BOTTOM SE UPAR SHIFTED
               child: Container(
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(20),
@@ -326,12 +343,12 @@ class _OrderMapPageState extends State<OrderMapPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.green.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.storefront,
-                            color: Colors.blue,
+                            Icons.person_pin_circle,
+                            color: Colors.green,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -340,16 +357,15 @@ class _OrderMapPageState extends State<OrderMapPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.order['pickup']?['name'] ??
-                                    "Pickup Location",
+                                widget.order['address']?['customer_name'] ??
+                                    "Customer Name",
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                widget.order['pickup']?['address'] ??
-                                    "Address details...",
+                                "${widget.order['address']?['addressLine1'] ?? ""}, ${widget.order['address']?['city'] ?? ""}",
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -383,6 +399,52 @@ class _OrderMapPageState extends State<OrderMapPage> {
                       ],
                     ),
                     const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _makeCall,
+                            icon: const Icon(Icons.call, color: Colors.white),
+                            label: const Text("Call"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              // Message functionality (could be WhatsApp or SMS)
+                              final phone = widget.order['address']?['mobile'];
+                              if (phone != null) {
+                                launchUrl(Uri.parse("sms:$phone"));
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.message_outlined,
+                              color: Colors.black,
+                            ),
+                            label: const Text(
+                              "Message",
+                              style: TextStyle(color: Colors.black),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: Colors.black),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
                     const Divider(),
                     const SizedBox(height: 20),
                     Row(
@@ -391,7 +453,7 @@ class _OrderMapPageState extends State<OrderMapPage> {
                           child: OutlinedButton.icon(
                             onPressed: _launchNavigation,
                             icon: const Icon(Icons.navigation_outlined),
-                            label: const Text("Start Navigation"),
+                            label: const Text("Navigate"),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               side: const BorderSide(color: Colors.black),
@@ -399,28 +461,28 @@ class _OrderMapPageState extends State<OrderMapPage> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                          ),
+                          ), 
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: isReachedLoading
+                            onPressed: isArrivedLoading
                                 ? null
-                                : _confirmReachedLocation,
+                                : _confirmArrival,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color.fromARGB(
                                 255,
                                 11,
                                 12,
                                 11,
-                              ), // ✅ BLACK
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            child: isReachedLoading
+                            child: isArrivedLoading
                                 ? const SizedBox(
                                     height: 22,
                                     width: 22,
@@ -430,11 +492,11 @@ class _OrderMapPageState extends State<OrderMapPage> {
                                     ),
                                   )
                                 : const Text(
-                                    "Reached Location",
+                                    "Arrived at Drop",
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.white, // ✅ WHITE TEXT
+                                      color: Colors.white,
                                     ),
                                   ),
                           ),

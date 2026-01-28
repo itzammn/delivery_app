@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zamboree/auth/api_helper.dart';
+import 'package:zamboree/Controller/ConfigController.dart';
+import 'package:zamboree/Controller/LocationController.dart';
 
 class SocketController extends GetxController {
   IO.Socket? socket;
@@ -10,6 +13,8 @@ class SocketController extends GetxController {
   RxBool isAccepting = false.obs;
 
   RxMap<String, dynamic> lastReceivedOrder = <String, dynamic>{}.obs;
+
+  Timer? _locationTimer;
 
   static const String SOCKET_URL = "https://dev-api.gamsgroup.in";
 
@@ -44,12 +49,14 @@ class SocketController extends GetxController {
       print("🆔 Socket ID: ${socket!.id}");
       isConnected.value = true;
       joinRoom();
+      startLocationUpdates(); // 📍 START UPDATING LOCATION
     });
 
     /// ❌ DISCONNECT
     socket!.onDisconnect((_) {
       print("❌ SOCKET DISCONNECTED");
       isConnected.value = false;
+      stopLocationUpdates(); // 🛑 STOP UPDATING LOCATION
     });
 
     /// ⚠️ ERROR
@@ -75,6 +82,15 @@ class SocketController extends GetxController {
       if (data is Map) {
         lastReceivedOrder.value = Map<String, dynamic>.from(data);
         print("✅ Order saved in controller");
+
+        // 🔔 PLAY RINGTONE (like Uber/Rapido)
+        try {
+          final configController = Get.find<ConfigController>();
+          configController.playOrderRingtone();
+          print("🔔 Order ringtone triggered");
+        } catch (e) {
+          print("⚠️ Could not play ringtone: $e");
+        }
       } else {
         print("❌ Invalid order format");
       }
@@ -120,6 +136,13 @@ class SocketController extends GetxController {
       if (res["success"] == true) {
         print("✅ Order accepted successfully");
 
+        // 🔕 STOP RINGTONE
+        try {
+          Get.find<ConfigController>().stopOrderRingtone();
+        } catch (e) {
+          print("⚠️ Could not stop ringtone: $e");
+        }
+
         /// (Optional) socket emit if backend expects it
         if (socket != null && socket!.connected) {
           socket!.emit("order:accept", {"orderId": orderId});
@@ -153,9 +176,58 @@ class SocketController extends GetxController {
     }
   }
 
+  /// 📍 START PERIODIC LOCATION UPDATES
+  void startLocationUpdates() {
+    stopLocationUpdates(); // Ensure no duplicate timers
+
+    final configController = Get.find<ConfigController>();
+    int interval = configController.driverLocationUpdate.value;
+    if (interval <= 0) interval = 55; // Fallback
+
+    print("🚀 Starting location updates every $interval seconds");
+
+    _locationTimer = Timer.periodic(Duration(seconds: interval), (timer) {
+      sendLocationUpdate();
+    });
+  }
+
+  /// 🛑 STOP PERIODIC LOCATION UPDATES
+  void stopLocationUpdates() {
+    _locationTimer?.cancel();
+    _locationTimer = null;
+    print("🛑 Location updates stopped");
+  }
+
+  /// 📤 SEND LOCATION TO BACKEND via Socket
+  Future<void> sendLocationUpdate() async {
+    if (socket == null || !socket!.connected) return;
+
+    final locationController = Get.find<LocationController>();
+    double lat = locationController.latitude.value;
+    double lng = locationController.longitude.value;
+
+    if (lat == 0.0 || lng == 0.0) {
+      print("⚠️ Skipping location update: lat/lng is 0.0");
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    final partnerId = prefs.getString("delivery_partner_id");
+
+    if (partnerId != null) {
+      print("📤 Sending location update: [$lat, $lng]");
+      socket!.emit("update-location", {
+        "deliveryPartnerId": partnerId,
+        "latitude": lat,
+        "longitude": lng,
+      });
+    }
+  }
+
   @override
   void onClose() {
     print("🧹 SocketController disposed");
+    stopLocationUpdates();
     socket?.disconnect();
     socket?.dispose();
     super.onClose();

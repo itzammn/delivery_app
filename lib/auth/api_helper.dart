@@ -173,6 +173,35 @@ class ApiHelper {
       "otp": otp,
     });
   }
+
+  /// ORDER ARRIVED AT DROP LOCATION
+  static Future<Map<String, dynamic>> orderArrived({
+    required String orderId,
+    required double lat,
+    required double lng,
+  }) async {
+    return post("/food-delivery/order-arrived", {
+      "orderId": orderId,
+      "lat": lat.toString(),
+      "lng": lng.toString(),
+    });
+  }
+
+  /// SEND OTP TO USER
+  static Future<Map<String, dynamic>> sendOrderOtp(String orderId) async {
+    return post("/food-delivery/order-otp", {"orderId": orderId});
+  }
+
+  /// ORDER DELIVERED
+  static Future<Map<String, dynamic>> orderDelivered({
+    required String orderId,
+    required String otp,
+  }) async {
+    return post("/food-delivery/order-delivered", {
+      "orderId": orderId,
+      "otp": otp,
+    });
+  }
 }
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;

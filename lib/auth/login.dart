@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
 import 'package:zamboree/Controller/SocketController.dart';
+import 'package:zamboree/Controller/ConfigController.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -135,14 +136,25 @@ class _LoginPageState extends State<LoginPage> {
         final prefs = await SharedPreferences.getInstance();
 
         // ✅ DELIVERY PARTNER ID SAVE KARO (ROOM NAME)
-        final partnerId =
-            result["data"]["deliveryPartner"]["_id"].toString();
+        final partnerId = result["data"]["deliveryPartner"]["_id"].toString();
 
         await prefs.setString("delivery_partner_id", partnerId);
         print("✅ delivery_partner_id saved: $partnerId");
 
         // 🔌 AB SOCKET CONNECT KARO
         Get.find<SocketController>().connectSocket();
+
+        // 📱 CONFIG VALUES SAVE KARO (driverLocationUpdate, orderCancelSeconds, ringtone)
+        final config = result["data"]["config"];
+        if (config != null) {
+          final configController = Get.find<ConfigController>();
+          await configController.saveConfig(
+            locationUpdate: config["driverLocationUpdate"] ?? 55,
+            cancelSeconds: config["orderCancelSeconds"] ?? 34,
+            ringtone: config["ringtone"] ?? "",
+          );
+          print("✅ Config saved from login response");
+        }
 
         // Extract token from different possible locations in response
         String? token;

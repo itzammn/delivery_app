@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:zamboree/screens/DropMapPage.dart';
 
 class OrderDetailsPage extends StatelessWidget {
   final Map<String, dynamic> orderData;
@@ -9,7 +10,7 @@ class OrderDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     debugPrint("✅ ORDER DETAILS PAGE DATA: $orderData");
 
-    /// 🔥 BACKEND STRUCTURE KE HISAB SE DATA
+    ///  BACKEND STRUCTURE KE HISAB SE DATA
     final Map<String, dynamic> order = orderData;
     final List products = order['products'] ?? [];
     final Map address = order['address'] ?? {};
@@ -74,22 +75,51 @@ class OrderDetailsPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ElevatedButton(
-                onPressed: () => Get.offAllNamed('/dashboard'),
+                onPressed: () {
+                  Get.to(() => DropMapPage(order: order));
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1E3A8A),
+                  backgroundColor: const Color.fromARGB(255, 13, 14, 13),
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: const Text(
-                  "BACK TO DASHBOARD",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  "GO TO DROP LOCATION",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 16),
+
+            // Padding(
+            //   padding: const EdgeInsets.symmetric(horizontal: 20),
+            //   child: OutlinedButton(
+            //     onPressed: () => Get.offAllNamed('/dashboard'),
+            //     style: OutlinedButton.styleFrom(
+            //       minimumSize: const Size(double.infinity, 56),
+            //       side: const BorderSide(color: Color(0xFF1E3A8A)),
+            //       shape: RoundedRectangleBorder(
+            //         borderRadius: BorderRadius.circular(16),
+            //       ),
+            //     ),
+            //     child: const Text(
+            //       "BACK TO HOME",
+            //       style: TextStyle(
+            //         fontSize: 16,
+            //         fontWeight: FontWeight.bold,
+            //         color: Color(0xFF1E3A8A),
+            //       ),
+            //     ),
+            //   ),
+            // ),
+            // const SizedBox(height: 40),
           ],
         ),
       ),

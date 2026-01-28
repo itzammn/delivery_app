@@ -11,6 +11,7 @@ import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:zamboree/Controller/LocationController.dart';
 import 'package:zamboree/Controller/SocketController.dart';
+import 'package:zamboree/Controller/ConfigController.dart';
 import 'package:get/get.dart';
 import 'package:zamboree/screens/EditMapPageLocation.dart';
 import 'package:zamboree/screens/ZoneMapPage.dart';
@@ -265,7 +266,16 @@ class _DashboardState extends State<Dashboard> {
   void _startDeliveryTimer() {
     _progress = 100;
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+
+    final configController = Get.find<ConfigController>();
+    int totalSeconds = configController.orderCancelSeconds.value;
+    if (totalSeconds <= 0) totalSeconds = 34; // Fallback to 34 from API example
+
+    // Calculate interval for 1% decrease: (totalSeconds * 1000) / 100
+    int intervalMs = (totalSeconds * 10)
+        .toInt(); // This is (total * 1000) / 100
+
+    _timer = Timer.periodic(Duration(milliseconds: intervalMs), (timer) {
       if (!mounted) return;
       setState(() => _progress -= 1);
       if (_progress <= 0) {
@@ -829,6 +839,12 @@ class _DashboardState extends State<Dashboard> {
             Expanded(
               child: OutlinedButton(
                 onPressed: () {
+                  // 🔕 STOP RINGTONE when declining
+                  try {
+                    Get.find<ConfigController>().stopOrderRingtone();
+                  } catch (e) {
+                    print("⚠️ Could not stop ringtone: $e");
+                  }
                   socketController.lastReceivedOrder.clear();
                 },
                 style: OutlinedButton.styleFrom(
