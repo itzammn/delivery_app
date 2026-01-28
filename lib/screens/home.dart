@@ -80,6 +80,9 @@ class _DashboardState extends State<Dashboard> {
         hasDelivery = false;
         _timer?.cancel();
       });
+      // 🔌 Tell SocketController we are offline
+      Get.find<SocketController>().setOnlineStatus(false);
+
       if (mounted) {
         _showSnackBar("You are now offline", dangerColor);
       }
@@ -125,7 +128,11 @@ class _DashboardState extends State<Dashboard> {
           isSearching = true;
         });
         // SOCKET CONNECT HERE
-        Get.find<SocketController>().connectSocket();
+        final socketController = Get.find<SocketController>();
+        socketController.connectSocket();
+        socketController.setOnlineStatus(
+          true,
+        ); // 🔌 Tell SocketController we are online
 
         _startSearchCycle();
         if (mounted) {

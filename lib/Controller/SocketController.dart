@@ -11,6 +11,7 @@ class SocketController extends GetxController {
 
   RxBool isConnected = false.obs;
   RxBool isAccepting = false.obs;
+  RxBool isOnline = false.obs; // 🟢 Track business online status
 
   RxMap<String, dynamic> lastReceivedOrder = <String, dynamic>{}.obs;
 
@@ -22,6 +23,17 @@ class SocketController extends GetxController {
   void onInit() {
     super.onInit();
     print("🟡 SocketController initialized");
+  }
+
+  /// 🟢 Set Driver Online/Offline status
+  void setOnlineStatus(bool online) {
+    isOnline.value = online;
+    if (!online) {
+      // 🧹 Clear everything when going offline
+      lastReceivedOrder.clear();
+      Get.find<ConfigController>().stopOrderRingtone();
+      print("🧹 Offline: Cleared orders and stopped ringtone");
+    }
   }
 
   /// 🔌 CONNECT SOCKET (after going online)
@@ -76,6 +88,12 @@ class SocketController extends GetxController {
 
     /// 📦 NEW ORDER EVENT
     socket!.on("order:new", (data) {
+      // 🚫 Only process if driver is ONLINE
+      if (!isOnline.value) {
+        print("ℹ️ Order received but driver is OFFLINE. Ignoring.");
+        return;
+      }
+
       print("🔥 NEW ORDER RECEIVED");
       print("📦 ORDER DATA: $data");
 

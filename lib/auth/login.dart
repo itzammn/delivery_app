@@ -141,10 +141,10 @@ class _LoginPageState extends State<LoginPage> {
         await prefs.setString("delivery_partner_id", partnerId);
         print("✅ delivery_partner_id saved: $partnerId");
 
-        // 🔌 AB SOCKET CONNECT KARO
+        // AB SOCKET CONNECT KARO
         Get.find<SocketController>().connectSocket();
 
-        // 📱 CONFIG VALUES SAVE KARO (driverLocationUpdate, orderCancelSeconds, ringtone)
+        // CONFIG VALUES SAVE KARO (driverLocationUpdate, orderCancelSeconds, ringtone)
         final config = result["data"]["config"];
         if (config != null) {
           final configController = Get.find<ConfigController>();
