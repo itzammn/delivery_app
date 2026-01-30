@@ -180,6 +180,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
                       const Divider(thickness: 1),
                       const SizedBox(height: 12),
                       _paymentRow(
+                        "Estimated Earning",
+                        "₹${order['earning'] ?? 0}",
+                      ),
+                      const SizedBox(height: 8),
+                      _paymentRow(
                         "Amount to Collect",
                         "₹${order['amount'] ?? 0}",
                         isTotal: true,

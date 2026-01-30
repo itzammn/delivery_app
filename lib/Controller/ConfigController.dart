@@ -56,7 +56,6 @@ class ConfigController extends GetxController {
     print("   └── ringtoneUrl: $ringtone");
   }
 
-  /// Play ringtone when new order arrives (like Uber/Rapido)
   Future<void> playOrderRingtone() async {
     if (ringtoneUrl.value.isEmpty) {
       print("⚠️ Ringtone URL is empty, skipping playback");

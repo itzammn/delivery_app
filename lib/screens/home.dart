@@ -810,9 +810,9 @@ class _DashboardState extends State<Dashboard> {
 
         const SizedBox(height: 16),
 
-        // 💰 AMOUNT (backend → amount)
+        // 💰 AMOUNT (backend → earning)
         Text(
-          "₹${order['shipping_charger'] ?? 0}",
+          "₹${order['earning'] ?? order['shipping_charger'] ?? 0}",
           style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
         ),
 
