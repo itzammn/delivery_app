@@ -152,6 +152,17 @@ class ApiHelper {
     return post("/food-delivery/order-accept", {"orderId": orderId});
   }
 
+  /// CANCEL ORDER API
+  static Future<Map<String, dynamic>> orderCancel({
+    required String orderId,
+    required String reason,
+  }) async {
+    return post("/food-delivery/order-cancel", {
+      "orderId": orderId,
+      "reason": reason,
+    });
+  }
+
   /// ORDER REACHED API
   static Future<Map<String, dynamic>> orderReached({
     required String orderId,
