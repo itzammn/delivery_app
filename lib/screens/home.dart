@@ -68,6 +68,24 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    // Refresh user name
+    await _loadUserName();
+
+    // Refresh any other data here in the future
+    // For example: await _fetchHomeStats();
+
+    // Adding a small delay to make the refresh animation visible
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    if (mounted) {
+      setState(() {
+        // Any state updates if needed
+      });
+      _showSnackBar("Page Refreshed", successColor);
+    }
+  }
+
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
@@ -374,19 +392,27 @@ class _DashboardState extends State<Dashboard> {
           ),
         ),
         SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                const SizedBox(height: 25),
-                _buildMainCard(),
-                const SizedBox(height: 30),
-                _buildProgressSection(),
-                const SizedBox(height: 100), // Space for bottom nav
-              ],
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: accentColor,
+            backgroundColor: Colors.white,
+            edgeOffset: 20,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 25),
+                  _buildMainCard(),
+                  const SizedBox(height: 30),
+                  _buildProgressSection(),
+                  const SizedBox(height: 100), // Space for bottom nav
+                ],
+              ),
             ),
           ),
         ),

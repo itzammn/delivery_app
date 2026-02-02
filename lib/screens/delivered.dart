@@ -14,6 +14,16 @@ class _DeliveredPageState extends State<DeliveredPage> {
   final Color warningColor = const Color(0xFFF59E0B); // Amber
   final Color dangerColor = const Color(0xFFEF4444); // Red
 
+  Future<void> _handleRefresh() async {
+    // Simulate data fetch
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (mounted) {
+      setState(() {
+        // Refresh logic would go here
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,130 +47,138 @@ class _DeliveredPageState extends State<DeliveredPage> {
           ),
 
           SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 20,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Delivered Orders",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.check_circle_outline_rounded,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Summary Card
-                _buildSummaryCard(),
-
-                const SizedBox(height: 20),
-
-                // List Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Today's History",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      Text(
-                        "6 Orders",
-                        style: TextStyle(
-                          color: accentColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Orders List
-                Expanded(
-                  child: ListView.builder(
+            child: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              color: accentColor,
+              backgroundColor: Colors.white,
+              edgeOffset: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
-                      vertical: 10,
+                      vertical: 20,
                     ),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: 5,
-                    itemBuilder: (context, index) {
-                      final orders = [
-                        {
-                          "id": "#ORD9283",
-                          "customer": "Rahul Sharma",
-                          "address": "Green Park Colony, Block B",
-                          "amount": "₹220.00",
-                          "time": "10:45 AM",
-                          "distance": "2.3 km",
-                        },
-                        {
-                          "id": "#ORD9284",
-                          "customer": "Priya Verma",
-                          "address": "City Mall, Sector 9, Lucknow",
-                          "amount": "₹185.00",
-                          "time": "11:10 AM",
-                          "distance": "1.8 km",
-                        },
-                        {
-                          "id": "#ORD9285",
-                          "customer": "Amit Kumar",
-                          "address": "Lake View Apartments, Flat 402",
-                          "amount": "₹260.00",
-                          "time": "12:00 PM",
-                          "distance": "3.1 km",
-                        },
-                        {
-                          "id": "#ORD9286",
-                          "customer": "Neha Singh",
-                          "address": "Sunshine Tower, 12th Floor",
-                          "amount": "₹175.00",
-                          "time": "12:45 PM",
-                          "distance": "1.5 km",
-                        },
-                        {
-                          "id": "#ORD9287",
-                          "customer": "Ravi Mehta",
-                          "address": "Galaxy Heights, Penthouse",
-                          "amount": "₹220.00",
-                          "time": "01:20 PM",
-                          "distance": "2.0 km",
-                        },
-                      ];
-                      return _buildOrderCard(orders[index]);
-                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Delivered Orders",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+
+                  // Summary Card
+                  _buildSummaryCard(),
+
+                  const SizedBox(height: 20),
+
+                  // List Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Today's History",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        Text(
+                          "6 Orders",
+                          style: TextStyle(
+                            color: accentColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Orders List
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      itemCount: 5,
+                      itemBuilder: (context, index) {
+                        final orders = [
+                          {
+                            "id": "#ORD9283",
+                            "customer": "Rahul Sharma",
+                            "address": "Green Park Colony, Block B",
+                            "amount": "₹220.00",
+                            "time": "10:45 AM",
+                            "distance": "2.3 km",
+                          },
+                          {
+                            "id": "#ORD9284",
+                            "customer": "Priya Verma",
+                            "address": "City Mall, Sector 9, Lucknow",
+                            "amount": "₹185.00",
+                            "time": "11:10 AM",
+                            "distance": "1.8 km",
+                          },
+                          {
+                            "id": "#ORD9285",
+                            "customer": "Amit Kumar",
+                            "address": "Lake View Apartments, Flat 402",
+                            "amount": "₹260.00",
+                            "time": "12:00 PM",
+                            "distance": "3.1 km",
+                          },
+                          {
+                            "id": "#ORD9286",
+                            "customer": "Neha Singh",
+                            "address": "Sunshine Tower, 12th Floor",
+                            "amount": "₹175.00",
+                            "time": "12:45 PM",
+                            "distance": "1.5 km",
+                          },
+                          {
+                            "id": "#ORD9287",
+                            "customer": "Ravi Mehta",
+                            "address": "Galaxy Heights, Penthouse",
+                            "amount": "₹220.00",
+                            "time": "01:20 PM",
+                            "distance": "2.0 km",
+                          },
+                        ];
+                        return _buildOrderCard(orders[index]);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

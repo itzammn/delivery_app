@@ -15,6 +15,16 @@ class _EarningsPageState extends State<EarningsPage> {
   final Color warningColor = const Color(0xFFF59E0B); // Amber
   final Color dangerColor = const Color(0xFFEF4444); // Red
 
+  Future<void> _handleRefresh() async {
+    // Simulate data fetch
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (mounted) {
+      setState(() {
+        // Refresh logic would go here
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,120 +47,128 @@ class _EarningsPageState extends State<EarningsPage> {
             ),
           ),
           SafeArea(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // AppBar Section
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "My Earnings",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.account_balance_wallet_rounded,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            child: RefreshIndicator(
+              onRefresh: _handleRefresh,
+              color: accentColor,
+              backgroundColor: Colors.white,
+              edgeOffset: 20,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
-
-                // Main Balance Card
-                SliverToBoxAdapter(child: _buildBalanceCard()),
-
-                // Stats Row
-                SliverToBoxAdapter(child: _buildStatsRow()),
-
-                // Chart Section
-                SliverToBoxAdapter(child: _buildChartSection()),
-
-                // Recent Transactions Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Recent Activities",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: Text(
-                            "See All",
+                slivers: [
+                  // AppBar Section
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "My Earnings",
                             style: TextStyle(
-                              color: accentColor,
+                              color: Colors.white,
+                              fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // Transactions List
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final data = [
-                        {
-                          "date": "Today, 2:30 PM",
-                          "deliveries": 8,
-                          "amount": "₹480.00",
-                          "status": "Credited",
-                        },
-                        {
-                          "date": "Yesterday",
-                          "deliveries": 6,
-                          "amount": "₹365.00",
-                          "status": "Credited",
-                        },
-                        {
-                          "date": "Jan 12, 2026",
-                          "deliveries": 10,
-                          "amount": "₹590.00",
-                          "status": "Credited",
-                        },
-                        {
-                          "date": "Jan 11, 2026",
-                          "deliveries": 5,
-                          "amount": "₹310.00",
-                          "status": "Credited",
-                        },
-                      ];
-                      final item = data[index % data.length];
-                      return _buildTransactionTile(item);
-                    }, childCount: 4),
+                  // Main Balance Card
+                  SliverToBoxAdapter(child: _buildBalanceCard()),
+
+                  // Stats Row
+                  SliverToBoxAdapter(child: _buildStatsRow()),
+
+                  // Chart Section
+                  SliverToBoxAdapter(child: _buildChartSection()),
+
+                  // Recent Transactions Header
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Recent Activities",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {},
+                            child: Text(
+                              "See All",
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 30)),
-              ],
+
+                  // Transactions List
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final data = [
+                          {
+                            "date": "Today, 2:30 PM",
+                            "deliveries": 8,
+                            "amount": "₹480.00",
+                            "status": "Credited",
+                          },
+                          {
+                            "date": "Yesterday",
+                            "deliveries": 6,
+                            "amount": "₹365.00",
+                            "status": "Credited",
+                          },
+                          {
+                            "date": "Jan 12, 2026",
+                            "deliveries": 10,
+                            "amount": "₹590.00",
+                            "status": "Credited",
+                          },
+                          {
+                            "date": "Jan 11, 2026",
+                            "deliveries": 5,
+                            "amount": "₹310.00",
+                            "status": "Credited",
+                          },
+                        ];
+                        final item = data[index % data.length];
+                        return _buildTransactionTile(item);
+                      }, childCount: 4),
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                ],
+              ),
             ),
           ),
         ],

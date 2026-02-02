@@ -144,288 +144,293 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _handleRefresh() async {
+    await _fetchLatestProfile();
+    // Small delay for better UX
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            // Header Section with Gradient
-            Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  height: 200,
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: accentColor,
+        backgroundColor: Colors.white,
+        edgeOffset:
+            100, // Offset to show indicator below the gradient header top
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          child: Column(
+            children: [
+              // Header Section with Gradient
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    height: 200,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [primaryColor, accentColor],
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(50),
+                        bottomRight: Radius.circular(50),
+                      ),
+                    ),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 20,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const SizedBox(
+                                  width: 40,
+                                ), // Placeholder to center title
+                                const Text(
+                                  "Profile",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () async {
+                                    final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const EditProfilePage(),
+                                      ),
+                                    );
+                                    if (result == true) {
+                                      _loadUserData(); // Refresh data if edited
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: -50,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: CircleAvatar(
+                        radius: 55,
+                        backgroundColor: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 70,
+                          color: primaryColor,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 60),
+              // Name and Status
+              Text(
+                userName,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "Delivery Partner",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: successColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle, color: successColor, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      "Online",
+                      style: TextStyle(
+                        color: successColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Stats Quick View
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatItem(
+                      "4.8",
+                      "Rating",
+                      Icons.star_rounded,
+                      Colors.amber,
+                    ),
+                    _buildStatItem(
+                      "126",
+                      "Deliveries",
+                      Icons.shopping_bag_rounded,
+                      accentColor,
+                    ),
+                    _buildStatItem(
+                      "₹12.3k",
+                      "Earnings",
+                      Icons.account_balance_wallet_rounded,
+                      successColor,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Profile Sections
+              _buildSectionHeader("Personal Information"),
+              _buildSectionContainer([
+                _buildMenuItem(
+                  Icons.phone_iphone_rounded,
+                  "Mobile Number",
+                  userPhone,
+                  null,
+                ),
+                _buildMenuItem(
+                  Icons.email_outlined,
+                  "Email Address",
+                  userEmail,
+                  null,
+                ),
+                _buildMenuItem(
+                  Icons.location_city_rounded,
+                  "Current City",
+                  userCity,
+                  null,
+                ),
+                _buildMenuItem(
+                  Icons.motorcycle_rounded,
+                  "Vehicle Details",
+                  userVehicle,
+                  null,
+                ),
+              ]),
+              const SizedBox(height: 20),
+              _buildSectionHeader("Performance & Finance"),
+              _buildSectionContainer([
+                _buildMenuItem(
+                  Icons.bar_chart_rounded,
+                  "Performance Summary",
+                  null,
+                  () {},
+                ),
+                _buildMenuItem(
+                  Icons.history_rounded,
+                  "Payout History",
+                  null,
+                  () {},
+                ),
+                _buildMenuItem(
+                  Icons.account_balance_rounded,
+                  "Bank Account Details",
+                  "SBI ****3421",
+                  () {},
+                ),
+              ]),
+              const SizedBox(height: 20),
+              _buildSectionHeader("Support & Settings"),
+              _buildSectionContainer([
+                _buildMenuItem(
+                  Icons.help_outline_rounded,
+                  "Help & Support",
+                  null,
+                  () {},
+                ),
+                _buildMenuItem(
+                  Icons.settings_suggest_rounded,
+                  "Settings",
+                  null,
+                  () {},
+                ),
+                _buildMenuItem(
+                  Icons.info_outline_rounded,
+                  "About Zamboree",
+                  "v 1.0.2",
+                  () {},
+                ),
+              ]),
+              const SizedBox(height: 30),
+              // Logout Button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [primaryColor, accentColor],
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(50),
-                      bottomRight: Radius.circular(50),
-                    ),
-                  ),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: _handleLogout,
+                    icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                    label: const Text(
+                      "Logout Account",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const SizedBox(
-                                width: 40,
-                              ), // Placeholder to center title
-                              const Text(
-                                "Profile",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.edit,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () async {
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const EditProfilePage(),
-                                    ),
-                                  );
-                                  if (result == true) {
-                                    _loadUserData(); // Refresh data if edited
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: dangerColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
+                      elevation: 0,
                     ),
                   ),
                 ),
-                Positioned(
-                  bottom: -50,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: CircleAvatar(
-                      radius: 55,
-                      backgroundColor: Colors.grey.shade200,
-                      child: Icon(
-                        Icons.person_rounded,
-                        size: 70,
-                        color: primaryColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 60),
-
-            // Name and Status
-            Text(
-              userName,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Delivery Partner",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              decoration: BoxDecoration(
-                color: successColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle, color: successColor, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    "Online",
-                    style: TextStyle(
-                      color: successColor,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Stats Quick View
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildStatItem(
-                    "4.8",
-                    "Rating",
-                    Icons.star_rounded,
-                    Colors.amber,
-                  ),
-                  _buildStatItem(
-                    "126",
-                    "Deliveries",
-                    Icons.shopping_bag_rounded,
-                    accentColor,
-                  ),
-                  _buildStatItem(
-                    "₹12.3k",
-                    "Earnings",
-                    Icons.account_balance_wallet_rounded,
-                    successColor,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 30),
-
-            // Profile Sections
-            _buildSectionHeader("Personal Information"),
-            _buildSectionContainer([
-              _buildMenuItem(
-                Icons.phone_iphone_rounded,
-                "Mobile Number",
-                userPhone,
-                null,
-              ),
-              _buildMenuItem(
-                Icons.email_outlined,
-                "Email Address",
-                userEmail,
-                null,
-              ),
-              _buildMenuItem(
-                Icons.location_city_rounded,
-                "Current City",
-                userCity,
-                null,
-              ),
-              _buildMenuItem(
-                Icons.motorcycle_rounded,
-                "Vehicle Details",
-                userVehicle,
-                null,
-              ),
-            ]),
-
-            const SizedBox(height: 20),
-
-            _buildSectionHeader("Performance & Finance"),
-            _buildSectionContainer([
-              _buildMenuItem(
-                Icons.bar_chart_rounded,
-                "Performance Summary",
-                null,
-                () {},
-              ),
-              _buildMenuItem(
-                Icons.history_rounded,
-                "Payout History",
-                null,
-                () {},
-              ),
-              _buildMenuItem(
-                Icons.account_balance_rounded,
-                "Bank Account Details",
-                "SBI ****3421",
-                () {},
-              ),
-            ]),
-
-            const SizedBox(height: 20),
-
-            _buildSectionHeader("Support & Settings"),
-            _buildSectionContainer([
-              _buildMenuItem(
-                Icons.help_outline_rounded,
-                "Help & Support",
-                null,
-                () {},
-              ),
-              _buildMenuItem(
-                Icons.settings_suggest_rounded,
-                "Settings",
-                null,
-                () {},
-              ),
-              _buildMenuItem(
-                Icons.info_outline_rounded,
-                "About Zamboree",
-                "v 1.0.2",
-                () {},
-              ),
-            ]),
-
-            const SizedBox(height: 30),
-
-            // Logout Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton.icon(
-                  onPressed: _handleLogout,
-                  icon: const Icon(Icons.logout_rounded, color: Colors.white),
-                  label: const Text(
-                    "Logout Account",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: dangerColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    elevation: 0,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 50),
-          ],
+              const SizedBox(height: 50),
+            ],
+          ),
         ),
       ),
     );

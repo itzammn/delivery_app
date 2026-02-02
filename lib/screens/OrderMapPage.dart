@@ -162,7 +162,7 @@ class _OrderMapPageState extends State<OrderMapPage> {
     mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 100));
   }
 
-  /// 🔔 CONFIRMATION DIALOG
+  /// CONFIRMATION DIALOG
   void _confirmReachedLocation() {
     Get.dialog(
       AlertDialog(
