@@ -340,7 +340,8 @@ class _OrderMapPageState extends State<OrderMapPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                widget.order['pickup']?['name'] ??
+                                widget.order['pickup']?['address'] ??
+                                    widget.order['pickup']?['name'] ??
                                     "Pickup Location",
                                 style: const TextStyle(
                                   fontSize: 18,
@@ -348,8 +349,9 @@ class _OrderMapPageState extends State<OrderMapPage> {
                                 ),
                               ),
                               Text(
-                                widget.order['pickup']?['address'] ??
-                                    "Address details...",
+                                widget.order['pickup']?['address'] != null
+                                    ? "Source pickup point"
+                                    : "Address details...",
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

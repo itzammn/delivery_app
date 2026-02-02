@@ -726,16 +726,20 @@ class _DashboardState extends State<Dashboard> {
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          _deliveryInfoRow(
-            Icons.storefront_rounded,
-            "Pickup: Pizza Planet",
-            "2.3 km",
+          _addressItem(
+            icon: Icons.storefront_rounded,
+            iconColor: accentColor,
+            label: "PICKUP FROM",
+            address: "Pizza Planet",
+            distance: "2.3 km",
           ),
-          const SizedBox(height: 10),
-          _deliveryInfoRow(
-            Icons.location_on_rounded,
-            "Drop: Green Park Colony",
-            "4.8 km",
+          const SizedBox(height: 12),
+          _addressItem(
+            icon: Icons.location_on_rounded,
+            iconColor: dangerColor,
+            label: "DROP TO",
+            address: "Green Park Colony",
+            distance: "4.8 km",
           ),
           const SizedBox(height: 24),
           ClipRRect(
@@ -830,38 +834,72 @@ class _DashboardState extends State<Dashboard> {
                 ),
               ),
             ),
-            const Text("⭐ 5.0", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text(" 5.0", style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
 
         const SizedBox(height: 16),
 
         // 💰 AMOUNT (backend → earning)
-        Text(
-          "₹${order['earning'] ?? order['shipping_charger'] ?? 0}",
-          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              "₹${order['earning'] ?? order['shipping_charger'] ?? 0}",
+              style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              "Earning",
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
 
-        // 📍 PICKUP
-        _deliveryInfoRow(
-          Icons.storefront_rounded,
-          order['pickup']?['address'] ??
-              order['pickup']?['name'] ??
-              "Pickup Location",
-          _getDistance(order['pickup']),
-        ),
-
-        const SizedBox(height: 10),
-
-        // 📍 DROP
-        _deliveryInfoRow(
-          Icons.location_on_rounded,
-          order['drop']?['address'] ??
-              order['drop']?['name'] ??
-              "Drop Location",
-          _getDistance(order['drop']),
+        // 📍 PICKUP & DROP - MODERN LAYOUT
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            children: [
+              _addressItem(
+                icon: Icons.storefront_rounded,
+                iconColor: accentColor,
+                label: "PICKUP FROM",
+                address:
+                    order['pickup']?['address'] ??
+                    order['pickup']?['name'] ??
+                    "Pickup Location",
+                distance: _getDistance(order['pickup']),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(left: 18),
+                child: Divider(height: 24, thickness: 1),
+              ),
+              _addressItem(
+                icon: Icons.location_on_rounded,
+                iconColor: dangerColor,
+                label: "DROP TO",
+                address:
+                    order['drop']?['addressLine1'] ??
+                    order['drop']?['address'] ??
+                    order['drop']?['name'] ??
+                    "Drop Location",
+                distance: _getDistance(order['drop']),
+              ),
+            ],
+          ),
         ),
 
         const SizedBox(height: 24),
@@ -928,20 +966,65 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _deliveryInfoRow(IconData icon, String title, String distance) {
+  Widget _addressItem({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required String address,
+    required String distance,
+  }) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Colors.grey.shade400),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
+          child: Icon(icon, size: 18, color: iconColor),
         ),
-        Text(
-          distance,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.grey.shade500,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  Text(
+                    distance,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: successColor,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                address,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  height: 1.3,
+                  color: Colors.black87,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ],
     );

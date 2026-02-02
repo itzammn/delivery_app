@@ -387,7 +387,9 @@ class _DropMapPageState extends State<DropMapPage> {
                                 ),
                               ),
                               Text(
-                                "${widget.order['address']?['addressLine1'] ?? ""}, ${widget.order['address']?['city'] ?? ""}",
+                                widget.order['address']?['addressLine1'] ??
+                                    widget.order['drop']?['addressLine1'] ??
+                                    "Drop Location Address",
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

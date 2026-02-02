@@ -134,7 +134,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage>
                       _modernInfoRow(
                         Icons.location_on_outlined,
                         "Delivery Address",
-                        "${address['addressLine1'] ?? ""}, ${address['city'] ?? ""}",
+                        address['addressLine1'] ??
+                            address['address'] ??
+                            order['drop']?['addressLine1'] ??
+                            order['drop']?['address'] ??
+                            "Address details not available",
                       ),
                     ],
                   ),
