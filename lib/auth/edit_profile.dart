@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -10,12 +11,32 @@ class EditProfilePage extends StatefulWidget {
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Dummy initial values (you can load from backend or local storage)
-  TextEditingController nameController = TextEditingController(text: "Aman Srivastava");
-  TextEditingController emailController = TextEditingController(text: "aman.srivastava@email.com");
-  TextEditingController phoneController = TextEditingController(text: "9876543210");
-  TextEditingController vehicleController = TextEditingController(text: "Hero Splendor");
-  TextEditingController cityController = TextEditingController(text: "Lucknow");
+  // Controllers with initial empty values
+  TextEditingController nameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+  TextEditingController vehicleController = TextEditingController();
+  TextEditingController cityController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      nameController.text = prefs.getString('user_name') ?? "";
+      emailController.text = prefs.getString('user_email') ?? "";
+      phoneController.text =
+          prefs.getString('user_phone') ??
+          prefs.getString('last_logged_in') ??
+          "";
+      vehicleController.text = prefs.getString('user_vehicle') ?? "";
+      cityController.text = prefs.getString('user_city') ?? "";
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +82,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         ),
                         child: const Padding(
                           padding: EdgeInsets.all(6),
-                          child: Icon(Icons.edit, color: Color(0xFF22308E), size: 20),
+                          child: Icon(
+                            Icons.edit,
+                            color: Color(0xFF22308E),
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -76,11 +101,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
               const SizedBox(height: 16),
               _buildTextField("Email", Icons.email_outlined, emailController),
               const SizedBox(height: 16),
-              _buildTextField("Phone", Icons.phone, phoneController, isNumber: true),
+              _buildTextField(
+                "Phone",
+                Icons.phone,
+                phoneController,
+                isNumber: true,
+              ),
               const SizedBox(height: 16),
-              _buildTextField("Vehicle", Icons.motorcycle_rounded, vehicleController),
+              _buildTextField(
+                "Vehicle",
+                Icons.motorcycle_rounded,
+                vehicleController,
+              ),
               const SizedBox(height: 16),
-              _buildTextField("City", Icons.location_on_outlined, cityController),
+              _buildTextField(
+                "City",
+                Icons.location_on_outlined,
+                cityController,
+              ),
 
               const SizedBox(height: 30),
 
@@ -88,16 +126,43 @@ class _EditProfilePageState extends State<EditProfilePage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Profile updated successfully!"),
-                          backgroundColor: Colors.green,
-                          duration: Duration(seconds: 2),
-                        ),
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString(
+                        'user_name',
+                        nameController.text.trim(),
                       );
-                      Navigator.pop(context); // Go back to Profile Page
+                      await prefs.setString(
+                        'user_email',
+                        emailController.text.trim(),
+                      );
+                      await prefs.setString(
+                        'user_phone',
+                        phoneController.text.trim(),
+                      );
+                      await prefs.setString(
+                        'user_vehicle',
+                        vehicleController.text.trim(),
+                      );
+                      await prefs.setString(
+                        'user_city',
+                        cityController.text.trim(),
+                      );
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Profile updated successfully!"),
+                            backgroundColor: Colors.green,
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                        Navigator.pop(
+                          context,
+                          true,
+                        ); // Go back with success flag
+                      }
                     }
                   },
                   icon: const Icon(Icons.save),
@@ -124,7 +189,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   // 🔹 TextField Builder
-  Widget _buildTextField(String label, IconData icon, TextEditingController controller, {bool isNumber = false}) {
+  Widget _buildTextField(
+    String label,
+    IconData icon,
+    TextEditingController controller, {
+    bool isNumber = false,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
@@ -139,7 +209,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
         prefixIcon: Icon(icon, color: const Color(0xFF22308E)),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../auth/login.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../auth/api_helper.dart';
+import '../auth/edit_profile.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -16,25 +18,130 @@ class _ProfilePageState extends State<ProfilePage> {
   final Color warningColor = const Color(0xFFF59E0B); // Amber
   final Color dangerColor = const Color(0xFFEF4444); // Red
 
-  String userName = "Aman Srivastava";
-  String userPhone = "+91 9876543210";
-  String userEmail = "aman.srivastava@email.com";
+  String userName = "User";
+  String userPhone = "Not available";
+  String userEmail = "Not available";
+  String userCity = "Not available";
+  String userVehicle = "Not available";
+  bool isLoadingProfile = false;
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _fetchLatestProfile();
   }
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      userName = prefs.getString('user_name') ?? "Aman Srivastava";
-      userPhone = prefs.getString('last_logged_in') ?? "9876543210";
-      if (!userPhone.startsWith('+')) {
-        userPhone = "+91 $userPhone";
+      userName = prefs.getString('user_name') ?? "User";
+      userEmail = prefs.getString('user_email') ?? "Not available";
+      userCity = prefs.getString('user_city') ?? "Not available";
+      userVehicle = prefs.getString('user_vehicle') ?? "Not available";
+
+      String? savedPhone =
+          prefs.getString('user_phone') ?? prefs.getString('last_logged_in');
+      if (savedPhone != null && savedPhone.isNotEmpty) {
+        userPhone = savedPhone;
+        if (!userPhone.startsWith('+')) {
+          userPhone = "+91 $userPhone";
+        }
       }
     });
+  }
+
+  Future<void> _fetchLatestProfile() async {
+    if (isLoadingProfile) return;
+    setState(() => isLoadingProfile = true);
+    try {
+      // 1. Fetch Cities first to resolve names from IDs
+      final cityRes = await ApiHelper.get("/delivery/auth/cities");
+      Map<String, String> cityMap = {};
+      if (cityRes["success"] == true && cityRes["data"] is List) {
+        for (var c in cityRes["data"]) {
+          if (c["_id"] != null && c["name"] != null) {
+            cityMap[c["_id"].toString()] = c["name"].toString();
+          }
+        }
+      }
+
+      // 2. Fetch Profile
+      // Attempting a few likely endpoints if the first one fails
+      var res = await ApiHelper.get(
+        "/food-delivery/profile",
+      ); // Try food-delivery prefix first
+      if (res["success"] != true) {
+        res = await ApiHelper.get("/delivery/profile/my-profile");
+      }
+
+      if (res["success"] == true && res["data"] != null) {
+        final data = res["data"];
+        final partner =
+            data["deliveryPartner"] ??
+            data; // Some APIs return the partner directly
+        final user = data["user"];
+
+        final prefs = await SharedPreferences.getInstance();
+
+        String? name =
+            partner?["name"]?.toString() ?? user?["name"]?.toString();
+        String? email =
+            partner?["email"]?.toString() ?? user?["email"]?.toString();
+        String? phone =
+            partner?["mobile"]?.toString() ??
+            user?["mobile"]?.toString() ??
+            user?["phone"]?.toString();
+
+        String? city;
+        final cityData = partner?["city"];
+        if (cityData is Map) {
+          city = cityData["name"]?.toString();
+        } else if (cityData != null) {
+          final cityId = cityData.toString();
+          city =
+              cityMap[cityId] ??
+              cityId; // Resolve from map or keep ID if not found
+        }
+
+        String? vehicle;
+        if (partner?["vehicleModel"] != null) {
+          vehicle =
+              "${partner["vehicleModel"]} (${partner["vehicleNo"] ?? ""})";
+        }
+
+        setState(() {
+          if (name != null) userName = name;
+          if (email != null && email != "null") userEmail = email;
+          if (city != null && city != "null") userCity = city;
+          if (vehicle != null && vehicle != "null") userVehicle = vehicle;
+          if (phone != null) {
+            userPhone = phone;
+            if (!userPhone.startsWith('+')) userPhone = "+91 $userPhone";
+          }
+        });
+
+        // Sync back to prefs
+        await prefs.setString('user_name', userName);
+        await prefs.setString('user_email', userEmail);
+        await prefs.setString('user_city', userCity);
+        await prefs.setString('user_vehicle', userVehicle);
+        if (phone != null) await prefs.setString('user_phone', phone);
+      } else {
+        // If profile fetch fails, at least try to resolve the city ID from SharedPreferences
+        if (cityMap.containsKey(userCity)) {
+          setState(() {
+            userCity = cityMap[userCity]!;
+          });
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_city', userCity);
+        }
+      }
+    } catch (e) {
+      print("Error fetching profile: $e");
+    } finally {
+      if (mounted) setState(() => isLoadingProfile = false);
+    }
   }
 
   @override
@@ -66,16 +173,45 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: 20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 20,
+                      ),
                       child: Column(
-                        children: const [
-                          Text(
-                            "Profile",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const SizedBox(
+                                width: 40,
+                              ), // Placeholder to center title
+                              const Text(
+                                "Profile",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                ),
+                                onPressed: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const EditProfilePage(),
+                                    ),
+                                  );
+                                  if (result == true) {
+                                    _loadUserData(); // Refresh data if edited
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -108,7 +244,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             // Name and Status
             Text(
-              userName, 
+              userName,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -135,7 +271,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle, color: successColor, size: 16), 
+                  Icon(Icons.check_circle, color: successColor, size: 16),
                   const SizedBox(width: 6),
                   Text(
                     "Online",
@@ -199,13 +335,13 @@ class _ProfilePageState extends State<ProfilePage> {
               _buildMenuItem(
                 Icons.location_city_rounded,
                 "Current City",
-                "Lucknow",
+                userCity,
                 null,
               ),
               _buildMenuItem(
                 Icons.motorcycle_rounded,
                 "Vehicle Details",
-                "Hero Splendor (UP32)",
+                userVehicle,
                 null,
               ),
             ]),

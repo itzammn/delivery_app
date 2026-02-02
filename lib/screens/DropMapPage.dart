@@ -234,7 +234,13 @@ class _DropMapPageState extends State<DropMapPage> {
         widget.order['order']?['orderId'];
 
     if (orderId == null || orderId.toString().isEmpty) {
-      Get.snackbar("Error", "Invalid order ID. Check console for logs.");
+      Get.snackbar(
+        "Error",
+        "Invalid order ID. Check console for logs.",
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       return;
     }
 
@@ -256,6 +262,7 @@ class _DropMapPageState extends State<DropMapPage> {
           Get.snackbar(
             "Arrived",
             "OTP has been sent to the customer",
+            snackPosition: SnackPosition.TOP,
             backgroundColor: Colors.green,
             colorText: Colors.white,
           );
@@ -266,16 +273,31 @@ class _DropMapPageState extends State<DropMapPage> {
             ),
           );
         } else {
-          Get.snackbar("Error", resOtp["message"] ?? "Failed to send OTP");
+          Get.snackbar(
+            "Error",
+            resOtp["message"] ?? "Failed to send OTP",
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
         }
       } else {
         Get.snackbar(
           "Error",
           resArrived["message"] ?? "Failed to update arrival",
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
         );
       }
     } catch (e) {
-      Get.snackbar("Error", "Something went wrong");
+      Get.snackbar(
+        "Error",
+        "Something went wrong",
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } finally {
       setState(() => isArrivedLoading = false);
     }
@@ -404,10 +426,12 @@ class _DropMapPageState extends State<DropMapPage> {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: _makeCall,
-                            icon: const Icon(Icons.call, color: Colors.white),
+                            icon: const Icon(Icons.call),
                             label: const Text("Call"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue.shade700,
+                              foregroundColor:
+                                  Colors.white, // text + icon dono white
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -415,6 +439,7 @@ class _DropMapPageState extends State<DropMapPage> {
                             ),
                           ),
                         ),
+
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
@@ -461,7 +486,7 @@ class _DropMapPageState extends State<DropMapPage> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                          ), 
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(

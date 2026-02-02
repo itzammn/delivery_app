@@ -46,6 +46,7 @@ class _DeliveryOtpPageState extends State<DeliveryOtpPage> {
       Get.snackbar(
         "Error",
         "Please enter 4-digit OTP",
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -64,6 +65,7 @@ class _DeliveryOtpPageState extends State<DeliveryOtpPage> {
         Get.snackbar(
           "Success",
           "Order Delivered Successfully",
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
@@ -74,6 +76,7 @@ class _DeliveryOtpPageState extends State<DeliveryOtpPage> {
         Get.snackbar(
           "Failed",
           res["message"] ?? "Invalid OTP",
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -82,6 +85,7 @@ class _DeliveryOtpPageState extends State<DeliveryOtpPage> {
       Get.snackbar(
         "Error",
         "Something went wrong",
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );

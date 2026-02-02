@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -11,7 +12,7 @@ class SocketController extends GetxController {
 
   RxBool isConnected = false.obs;
   RxBool isAccepting = false.obs;
-  RxBool isOnline = false.obs; // 🟢 Track business online status
+  RxBool isOnline = false.obs; //  Track business online status
 
   RxMap<String, dynamic> lastReceivedOrder = <String, dynamic>{}.obs;
 
@@ -173,13 +174,17 @@ class SocketController extends GetxController {
         Get.snackbar(
           "Order Accepted",
           "Order accepted successfully",
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
         );
       } else {
         Get.snackbar(
           "Failed",
           res["message"] ?? "Order accept failed",
-          snackPosition: SnackPosition.BOTTOM,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
         );
       }
     } catch (e) {
@@ -187,7 +192,9 @@ class SocketController extends GetxController {
       Get.snackbar(
         "Error",
         "Something went wrong",
-        snackPosition: SnackPosition.BOTTOM,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
     } finally {
       isAccepting.value = false;

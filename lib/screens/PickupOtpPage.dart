@@ -36,6 +36,7 @@ class _PickupOtpPageState extends State<PickupOtpPage> {
       Get.snackbar(
         "Error",
         "Please enter 4-digit OTP",
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -54,6 +55,7 @@ class _PickupOtpPageState extends State<PickupOtpPage> {
         Get.snackbar(
           "Success",
           "Order Picked Up Successfully",
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
@@ -68,6 +70,7 @@ class _PickupOtpPageState extends State<PickupOtpPage> {
         Get.snackbar(
           "Failed",
           res["message"] ?? "Invalid OTP",
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -76,6 +79,7 @@ class _PickupOtpPageState extends State<PickupOtpPage> {
       Get.snackbar(
         "Error",
         "Something went wrong",
+        snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );

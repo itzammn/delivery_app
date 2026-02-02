@@ -436,6 +436,7 @@ class _ZoneMapPageState extends State<ZoneMapPage> {
           Get.snackbar(
             "Navigation Error",
             "Could not launch maps",
+            snackPosition: SnackPosition.TOP,
             backgroundColor: Colors.redAccent,
             colorText: Colors.white,
           );
@@ -449,6 +450,7 @@ class _ZoneMapPageState extends State<ZoneMapPage> {
         Get.snackbar(
           "Navigation Error",
           "Error details: ${e.toString()}",
+          snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.redAccent,
           colorText: Colors.white,
         );

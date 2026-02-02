@@ -42,7 +42,7 @@ class _DashboardState extends State<Dashboard> {
   Timer? _timer;
   bool _isCheckingZone = false;
   bool showToday = true;
-  String userName = "Aman"; // Default fallback
+  String userName = "User"; // Default fallback
 
   final Color primaryColor = const Color(0xFF1E3A8A); // Deep Blue
   final Color accentColor = const Color(0xFF3B82F6); // Lighter Blue

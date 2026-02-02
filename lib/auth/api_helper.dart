@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiHelper {
   static const String _baseUrl = "https://dev-api.gamsgroup.in";
+  // static const String _baseUrl = "http://192.168.29.58:8000";
 
   // Get token from SharedPreferences
   static Future<String?> _getToken() async {
@@ -146,7 +147,7 @@ class ApiHelper {
     });
   }
 
-  /// ✅ ACCEPT ORDER API
+  /// ACCEPT ORDER API
   static Future<Map<String, dynamic>> acceptOrder(String orderId) async {
     return post("/food-delivery/order-accept", {"orderId": orderId});
   }
@@ -202,6 +203,13 @@ class ApiHelper {
       "otp": otp,
     });
   }
+
+  /// GET PROFILE DATA
+  static Future<Map<String, dynamic>> getProfile() async {
+    return get(
+      "/delivery/profile/my-profile",
+    ); // This is a common pattern, adjusting if needed
+  }
 }
 // import 'dart:convert';
 // import 'package:http/http.dart' as http;
@@ -217,7 +225,7 @@ class ApiHelper {
 //       final response = await http.post(
 //         Uri.parse("$_baseUrl$endpoint"),
 //         headers: {"Accept": "application/json"},
-//         body: data, // 👈 NO jsonEncode
+//         body: data, // NO jsonEncode
 //       );
 
 //       print("📤 POST => $_baseUrl$endpoint");

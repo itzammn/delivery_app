@@ -194,25 +194,71 @@ class _LoginPageState extends State<LoginPage> {
 
         // Save phone number
         await prefs.setString('last_logged_in', mobile);
+        await prefs.setString('user_phone', mobile);
 
-        // Try to save user name if provided in response
+        // Extract User Details with exact keys from registration flow
+        final data = result["data"];
+        final partner = data is Map ? data["deliveryPartner"] : null;
+        final responseUser = data is Map
+            ? data["user"]
+            : (result["user"] is Map ? result["user"] : null);
+
         String? userName;
-        if (result["user"] != null && result["user"]["name"] != null) {
-          userName = result["user"]["name"];
-        } else if (result["data"] != null &&
-            result["data"]["user"] != null &&
-            result["data"]["user"]["name"] != null) {
-          userName = result["data"]["user"]["name"];
-        } else if (result["data"] != null && result["data"]["name"] != null) {
-          userName = result["data"]["name"];
-        } else if (result["name"] != null) {
-          userName = result["name"];
+        String? userEmail;
+        String? vehicleDetails;
+        String? city;
+
+        if (partner is Map) {
+          userName = partner["name"]?.toString();
+          userEmail = partner["email"]?.toString();
+
+          // City handling: resolved name vs ID
+          final partnerCity = partner["city"];
+          if (partnerCity is Map) {
+            city = partnerCity["name"]?.toString();
+          } else {
+            city = partnerCity?.toString(); // Likely an ID
+          }
+
+          if (partner["vehicleModel"] != null) {
+            vehicleDetails =
+                "${partner["vehicleModel"]} (${partner["vehicleNo"] ?? ""})";
+          }
         }
 
-        if (userName != null) {
-          await prefs.setString('user_name', userName);
-          print("✅ User Name Saved: $userName");
+        // Fallbacks for basics if partner object is thin
+        if (userName == null || userName.isEmpty || userName == "null") {
+          userName =
+              responseUser?["name"]?.toString() ?? result["name"]?.toString();
         }
+        if (userEmail == null || userEmail.isEmpty || userEmail == "null") {
+          userEmail = responseUser?["email"]?.toString();
+        }
+
+        // --- CRITICAL: Always update SharedPreferences ---
+        // We use || "" or || "Not available" to ensure old data from previous users is OVERWRITTEN.
+        await prefs.setString(
+          'user_name',
+          (userName != null && userName != "null") ? userName : "User",
+        );
+        await prefs.setString(
+          'user_email',
+          (userEmail != null && userEmail != "null")
+              ? userEmail
+              : "Not available",
+        );
+        await prefs.setString(
+          'user_vehicle',
+          (vehicleDetails != null && vehicleDetails != "null")
+              ? vehicleDetails
+              : "Not available",
+        );
+        await prefs.setString(
+          'user_city',
+          (city != null && city != "null") ? city : "Not available",
+        );
+
+        print("✅ User Data Synced: $userName | $userEmail | $city");
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

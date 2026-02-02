@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # 🌟 Common Flutter dependencies 
+  # Common Flutter dependencies 
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.3.2
   location: ^6.0.2
@@ -27,14 +27,14 @@ dependencies:
   socket_io_client: ^3.1.4
   just_audio: ^0.9.40
 
-  # 🗺️ Map-related dependencies 
+  # Map-related dependencies 
   # flutter_map: ^8.2.2
   # latlong2: ^0.9.1
 
-  # 📸 Image picker
+  # Image picker
   image_picker: ^1.1.1
 
-  # 🌐 HTTP + multipart helper
+  # HTTP + multipart helper
   http: ^1.2.2
   http_parser: ^4.0.2
   url_launcher: ^6.3.2
